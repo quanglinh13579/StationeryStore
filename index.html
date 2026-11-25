@@ -1,11 +1,231 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StationeryStore – Đồ Dùng Học Tập</title>
-</head>
-<body>
-  <h1>🛒 StationeryStore – Coming Soon</h1>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nét nhỏ. - Đồ dùng học tập</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/home.css" />
+  </head>
+  <body>
+    <div class="top-strip">
+      <div class="container strip-inner">
+        <span>Miễn phí giao hàng từ 350.000đ</span>
+        <div>
+          <a href="tel:19002525">Hotline: 1900 2525</a>
+          <a href="#store">Địa chỉ cửa hàng</a>
+        </div>
+      </div>
+    </div>
+
+    <header class="header">
+      <div class="container header-main">
+        <a class="brand" href="index.html" aria-label="Nét nhỏ">
+          <span class="brand-mark">✎</span><span>nét nhỏ.</span>
+        </a>
+        <label class="search" aria-label="Tìm kiếm sản phẩm">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5"></circle>
+            <path d="m16 16 4 4"></path>
+          </svg>
+          <input
+            id="product-search"
+            type="search"
+            placeholder="Tìm kiếm sản phẩm..."
+          />
+        </label>
+        <div class="header-actions">
+          <a href="pages/auth/login.html"
+            ><img src="assets/icons/login-icon.svg" alt="Login" width="20" height="20" class="action-icon"/><span>Đăng nhập</span></a
+          >
+          <a
+            id="favorites-toggle"
+            href="#products"
+            aria-label="Chỉ xem sản phẩm yêu thích"
+            aria-pressed="false"
+            ><span class="action-icon">♡</span><span>Yêu thích</span
+            ><b id="favorite-count">0</b></a
+          >
+          <a href="#products" aria-label="Giỏ hàng"
+            ><img src="assets/icons/cart-icon.svg" alt="Cart" width="20" height="20" class="action-icon"/><span>Giỏ hàng</span
+            ><b id="cart-count">0</b></a
+          >
+        </div>
+      </div>
+      <nav class="container nav">
+        <a href="#products" data-filter="all">Tất cả sản phẩm</a>
+        <a href="#products" data-filter="notebook">Sổ &amp; vở</a>
+        <a href="#products" data-filter="pen">Bút &amp; viết</a>
+        <a href="#products" data-filter="stationery">Văn phòng phẩm</a>
+        <a href="#products" data-filter="accessory">Thời trang</a>
+        <a href="#categories">Đồ chơi học tập</a>
+        <a class="nav-highlight" href="#products" data-filter="sale"
+          >Ưu đãi hôm nay</a
+        >
+      </nav>
+    </header>
+
+    <main>
+      <section class="container hero">
+        <div class="hero-copy">
+          <p class="eyebrow">✦ GÓC NHỎ NUÔI DƯỠNG Ý TƯỞNG</p>
+          <h1>Nhỏ thôi.<br /><span>Ý tưởng lớn.</span></h1>
+          <p class="hero-description">
+            Mỗi món đồ nhỏ xinh khơi nguồn cảm hứng học tập và sáng tạo mỗi
+            ngày.
+          </p>
+          <a class="hero-button" href="#products">Khám phá tất cả sản phẩm</a>
+        </div>
+        <div class="hero-image">
+          <img
+            src="https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?auto=format&fit=crop&w=900&q=85"
+            alt="Sách, bút và đồ dùng học tập"
+          />
+          <div class="hero-card">
+            <span>Sổ tay sáng tạo · Bìa cứng</span>
+            <strong>Chỉ từ<br />65.000đ</strong>
+          </div>
+          <div class="pencil-badge">ƯU ĐÃI<br />ĐẾN 25%</div>
+        </div>
+      </section>
+
+      <section class="container benefits">
+        <article>
+          <svg class="benefit-icon" viewBox="0 0 28 28" aria-hidden="true">
+            <use href="assets/icons/benefits.svg#delivery"></use>
+          </svg>
+          <div>
+            <strong>Giao tận góc học tập</strong>
+            <small>Miễn phí từ 250.000đ sau giảm giá</small>
+          </div>
+        </article>
+        <article>
+          <svg class="benefit-icon" viewBox="0 0 28 28" aria-hidden="true">
+            <use href="assets/icons/benefits.svg#package"></use>
+          </svg>
+          <div>
+            <strong>Chăm chút từng món</strong>
+            <small>Kiểm tra kỹ trước khi đóng gói</small>
+          </div>
+        </article>
+        <article>
+          <svg class="benefit-icon" viewBox="0 0 28 28" aria-hidden="true">
+            <use href="assets/icons/benefits.svg#returns"></use>
+          </svg>
+          <div>
+            <strong>Đổi trả trong 7 ngày</strong>
+            <small>Khi sản phẩm lỗi hoặc giao nhầm</small>
+          </div>
+        </article>
+        <article>
+          <svg class="benefit-icon" viewBox="0 0 28 28" aria-hidden="true">
+            <use href="assets/icons/benefits.svg#gift"></use>
+          </svg>
+          <div>
+            <strong>Một chút bất ngờ</strong>
+            <small>Tặng thiệp nhỏ trong mỗi đơn</small>
+          </div>
+        </article>
+      </section>
+
+      <section class="container need" id="categories">
+        <h2>Hôm nay bạn cần gì?</h2>
+        <div class="category-grid">
+          <a class="category-card" href="#products" data-filter="notebook">
+            <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true"><use href="assets/icons/categories.svg#notebook"></use></svg>
+            <strong>Sổ &amp; vở</strong><small>32 sản phẩm <span aria-hidden="true">↗</span></small>
+          </a>
+          <a class="category-card" href="#products" data-filter="pen">
+            <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true"><use href="assets/icons/categories.svg#pen"></use></svg>
+            <strong>Bút viết</strong><small>46 sản phẩm <span aria-hidden="true">↗</span></small>
+          </a>
+          <a class="category-card" href="#products" data-filter="color">
+            <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true"><use href="assets/icons/categories.svg#palette"></use></svg>
+            <strong>Màu &amp; vẽ</strong><small>24 sản phẩm <span aria-hidden="true">↗</span></small>
+          </a>
+          <a class="category-card" href="#products" data-filter="accessory">
+            <svg class="cat-icon cat-icon--accent" viewBox="0 0 40 40" aria-hidden="true"><use href="assets/icons/categories.svg#tools"></use></svg>
+            <strong>Túi &amp; phụ kiện</strong><small>18 sản phẩm <span aria-hidden="true">↗</span></small>
+          </a>
+          <a class="category-card" href="#products" data-filter="stationery">
+            <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true"><use href="assets/icons/categories.svg#note"></use></svg>
+            <strong>Giấy ghi chú</strong><small>20 sản phẩm <span aria-hidden="true">↗</span></small>
+          </a>
+          <a class="category-card" href="#products" data-filter="gift">
+            <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true"><use href="assets/icons/categories.svg#gift"></use></svg>
+            <strong>Bộ quà tặng</strong><small>8 sản phẩm <span aria-hidden="true">↗</span></small>
+          </a>
+        </div>
+      </section>
+
+      <section class="container products" id="products">
+        <div class="section-heading">
+          <h2>Những món nhỏ được thương</h2>
+          <div class="product-controls" aria-label="Điều khiển danh sách sản phẩm">
+            <button id="product-prev" type="button" aria-label="Cuộn sản phẩm sang trái" disabled>←</button>
+            <button id="product-next" type="button" aria-label="Cuộn sản phẩm sang phải" disabled>→</button>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="active" type="button" data-filter="all">Tất cả</button>
+          <button type="button" data-filter="latest">Mới nhất</button>
+          <button type="button" data-filter="popular">Bán chạy</button>
+          <button type="button" data-filter="sale">Đang ưu đãi</button>
+        </div>
+        <p class="search-status" id="search-status" aria-live="polite">
+          Đang tải sản phẩm...
+        </p>
+        <div class="product-grid" id="product-grid" aria-live="polite"></div>
+        <button class="products-more" id="products-retry" type="button" hidden>
+          Thử tải lại sản phẩm
+        </button>
+      </section>
+
+
+    </main>
+
+    <footer>
+      <div class="container footer-grid" id="store">
+        <div>
+          <a class="brand footer-brand" href="index.html"
+            ><span class="brand-mark">✎</span><span>nét nhỏ.</span></a
+          >
+          <p>Đồ dùng học tập và văn phòng phẩm giúp bạn sáng tạo mỗi ngày.</p>
+          <p><a href="#reviews">Instagram　 Facebook　 TikTok</a></p>
+        </div>
+        <div>
+          <h3>Hỗ trợ khách hàng</h3>
+          <p><a href="tel:19002525">Hotline 1900 2525</a></p>
+          <p><a href="mailto:hello@netnho.vn">hello@netnho.vn</a></p>
+          <h3>Chăm sóc khách hàng</h3>
+          <p><a href="#reviews">Câu hỏi thường gặp</a></p>
+        </div>
+        <div>
+          <h3>Hệ thống cửa hàng</h3>
+          <p>39 Nguyễn Huệ</p>
+          <p>TP. Hồ Chí Minh</p>
+          <h3>Thông tin</h3>
+          <p><a href="#store">Về Nét Nhỏ</a></p>
+        </div>
+        <div>
+          <h3>Mua sắm</h3>
+          <p><a href="#products">Sản phẩm nổi bật</a></p>
+          <p><a href="#categories">Danh mục sản phẩm</a></p>
+          <h3>Chính sách</h3>
+          <p><a href="#store">Đổi trả &amp; vận chuyển</a></p>
+        </div>
+      </div>
+      <div class="container copyright">
+        <span>© 2025 Nét Nhỏ. Bảo lưu mọi quyền.</span
+        ><span>Chính sách bảo mật　|　Điều khoản sử dụng</span>
+      </div>
+    </footer>
+    <script src="api/mock-api.js"></script>
+    <script src="js/home.js"></script>
+  </body>
 </html>
