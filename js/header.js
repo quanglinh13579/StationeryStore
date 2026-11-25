@@ -3,12 +3,14 @@
   if (!placeholder) return;
 
   const isCartPage = window.location.pathname.includes("/pages/cart/");
+  const isProductPage = window.location.pathname.includes("/pages/product/");
+  const isNestedPage = isCartPage || isProductPage;
   if (isCartPage) document.body.classList.add("cart-page-layout");
-  const base = isCartPage ? "../.." : ".";
+  const base = isNestedPage ? "../.." : ".";
   const searchId = isCartPage ? "cart-search" : "product-search";
-  const searchTag = isCartPage ? "form" : "label";
+  const searchTag = isNestedPage ? "form" : "label";
   const cartLink = isCartPage ? "cart.html" : `${base}/pages/cart/cart.html`;
-  const favoritesLink = isCartPage
+  const favoritesLink = isNestedPage
     ? `${base}/index.html?favorites=1#products`
     : "#products";
 
@@ -18,7 +20,7 @@
         <span>Miễn phí giao hàng từ 350.000đ</span>
         <div>
           <a href="tel:19002525">Hotline: 1900 2525</a>
-          <a href="${isCartPage ? `${base}/index.html#store` : "#store"}">Địa chỉ cửa hàng</a>
+          <a href="${isNestedPage ? `${base}/index.html#store` : "#store"}">Địa chỉ cửa hàng</a>
         </div>
       </div>
     </div>
@@ -27,7 +29,7 @@
         <a class="brand" href="${base}/index.html" aria-label="Nét nhỏ">
           <span class="brand-mark">✎</span><span>nét nhỏ.</span>
         </a>
-        <${searchTag} class="search" id="${searchId}" ${isCartPage ? 'role="search"' : 'aria-label="Tìm kiếm sản phẩm"'}>
+        <${searchTag} class="search" id="${searchId}" ${isNestedPage ? 'role="search"' : 'aria-label="Tìm kiếm sản phẩm"'}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="6.5"></circle>
             <path d="m16 16 4 4"></path>
@@ -72,14 +74,16 @@
   updateFavoriteCount();
   window.stationeryFavorites.subscribe(updateFavoriteCount);
 
-  if (isCartPage) {
-    const search = placeholder.querySelector("#cart-search");
+  if (isNestedPage) {
+    const search = placeholder.querySelector(`#${searchId}`);
     search.addEventListener("submit", (event) => {
       event.preventDefault();
       const query = search.querySelector("input").value.trim();
       window.location.href = `${base}/index.html${query ? `?search=${encodeURIComponent(query)}#products` : "#products"}`;
     });
+  }
 
+  if (isCartPage) {
     try {
       const cart = JSON.parse(localStorage.getItem("stationery-cart"));
       const count = Array.isArray(cart)

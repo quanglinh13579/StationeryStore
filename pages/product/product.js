@@ -1,0 +1,504 @@
+const productId = new URLSearchParams(window.location.search).get("id");
+const productStatus = document.querySelector("#product-page-status");
+const productContent = document.querySelector("#product-detail-content");
+const cartCount = document.querySelector("#cart-count");
+const favoriteStore = window.stationeryFavorites;
+const cartStorageKey = "stationery-cart";
+const productColors = [
+  { name: "Xanh cobalt", value: "#286db3" },
+  { name: "Cam đất", value: "#ec7846" },
+  { name: "Xanh sage", value: "#9baa86" },
+];
+
+let currentProduct = null;
+let allProducts = [];
+let selectedColor = "";
+
+function formatPrice(price) {
+  return `${price.toLocaleString("vi-VN")}đ`;
+}
+
+function formatRating(rating) {
+  const roundedRating = Math.round(rating);
+  return `${"★".repeat(roundedRating)}${"☆".repeat(5 - roundedRating)}`;
+}
+
+function getCategoryName(product) {
+  const names = {
+    notebook: "Sổ & vở",
+    pen: "Bút viết",
+    color: "Màu & vẽ",
+    accessory: "Túi & phụ kiện",
+    stationery: "Văn phòng phẩm",
+    desk: "Văn phòng phẩm",
+    gift: "Bộ quà tặng",
+  };
+  return names[product.category[0]] || "Văn phòng phẩm";
+}
+
+function getDescription(product) {
+  if (product.category.includes("notebook")) {
+    return `${product.name} là người bạn đồng hành gọn gàng cho những ghi chú, kế hoạch và ý tưởng mỗi ngày. Thiết kế tiện dụng, dễ mang theo và phù hợp cho học tập lẫn công việc.`;
+  }
+  if (product.category.includes("pen") || product.category.includes("color")) {
+    return `${product.name} giúp việc học tập và sáng tạo thêm thú vị. Sản phẩm được chọn lọc để dễ sử dụng hằng ngày, phù hợp mang đến lớp học hoặc góc làm việc.`;
+  }
+  return `${product.name} được chọn lọc để làm góc học tập thêm ngăn nắp và truyền cảm hứng. Thiết kế tiện dụng, phù hợp sử dụng mỗi ngày hoặc làm món quà nhỏ xinh.`;
+}
+
+function getReviewTopic(product) {
+  if (product.category.includes("notebook")) return "Sổ tay";
+  if (product.category.includes("pen") || product.category.includes("color")) {
+    return "Bút màu";
+  }
+  if (product.category.includes("accessory")) return "Túi bút";
+  if (product.category.includes("stationery")) return "Giấy ghi chú";
+  return "";
+}
+
+function readCart() {
+  try {
+    const storedCart = JSON.parse(localStorage.getItem(cartStorageKey));
+    return Array.isArray(storedCart) ? storedCart : [];
+  } catch {
+    return [];
+  }
+}
+
+function updateCartCount() {
+  const count = readCart().reduce((total, item) => total + item.quantity, 0);
+  cartCount.textContent = String(count);
+}
+
+function updateFavoriteButtons() {
+  document.querySelectorAll("[data-favorite-product-id]").forEach((button) => {
+    const isFavorite = favoriteStore
+      .getAll()
+      .includes(button.dataset.favoriteProductId);
+    const productName = button.dataset.favoriteProductName || "sản phẩm";
+    button.setAttribute("aria-pressed", String(isFavorite));
+    button.setAttribute(
+      "aria-label",
+      isFavorite
+        ? `Bỏ ${productName} khỏi yêu thích`
+        : `Thêm ${productName} vào yêu thích`,
+    );
+    button.textContent = isFavorite ? "♥" : "♡";
+  });
+}
+
+function addToCart(product, quantity, variant = "") {
+  const cart = readCart();
+  const existingItem = cart.find(
+    (item) => item.id === product.id && (item.variant || "") === variant,
+  );
+
+  if (existingItem) {
+    existingItem.quantity += quantity;
+  } else {
+    cart.push({
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      quantity,
+      ...(variant ? { variant } : {}),
+    });
+  }
+
+  localStorage.setItem(cartStorageKey, JSON.stringify(cart));
+  updateCartCount();
+}
+
+function renderGallery(product) {
+  const image = document.querySelector("#detail-image");
+  image.src = product.image;
+  image.alt = product.name;
+
+  const thumbnail = document.createElement("button");
+  thumbnail.className = "detail-thumbnail active";
+  thumbnail.type = "button";
+  thumbnail.setAttribute("aria-label", `Xem ảnh ${product.name}`);
+  const thumbnailImage = document.createElement("img");
+  thumbnailImage.src = product.image;
+  thumbnailImage.alt = "";
+  thumbnail.append(thumbnailImage);
+  thumbnail.addEventListener("click", () => {
+    image.src = product.image;
+    document
+      .querySelectorAll(".detail-thumbnail")
+      .forEach((item) => item.classList.toggle("active", item === thumbnail));
+  });
+  document.querySelector("#detail-thumbnails").append(thumbnail);
+}
+
+function renderColorOptions(product) {
+  if (!product.category.includes("notebook")) return;
+
+  selectedColor = productColors[0].name;
+  const container = document.querySelector("#detail-color-options");
+  const colorList = document.querySelector("#detail-color-list");
+  container.hidden = false;
+  document.querySelector("#selected-color").textContent = selectedColor;
+
+  productColors.forEach((color) => {
+    const button = document.createElement("button");
+    button.className = "detail-color-option";
+    button.type = "button";
+    button.setAttribute("aria-label", color.name);
+    button.setAttribute("aria-pressed", String(color.name === selectedColor));
+    const swatch = document.createElement("span");
+    swatch.style.backgroundColor = color.value;
+    button.append(swatch);
+    button.addEventListener("click", () => {
+      selectedColor = color.name;
+      document.querySelector("#selected-color").textContent = color.name;
+      colorList.querySelectorAll(".detail-color-option").forEach((option) => {
+        option.setAttribute(
+          "aria-pressed",
+          String(option.getAttribute("aria-label") === selectedColor),
+        );
+      });
+    });
+    colorList.append(button);
+  });
+
+  document.querySelector("#detail-size-line").hidden = false;
+  document.querySelector("#detail-size").textContent = "A5";
+}
+
+function renderSpecifications(product) {
+  const specifications = [
+    ["Mã sản phẩm", product.id.toUpperCase()],
+    ["Danh mục", getCategoryName(product)],
+    ["Đánh giá", `${product.rating} / 5 (${product.reviewCount} lượt)`],
+    [
+      "Quy cách",
+      product.category.includes("notebook") ? "Khổ A5" : "Tiêu chuẩn",
+    ],
+    ["Tình trạng", "Còn hàng"],
+  ];
+  const list = document.querySelector("#specification-list");
+
+  specifications.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const description = document.createElement("dd");
+    description.textContent = value;
+    row.append(term, description);
+    list.append(row);
+  });
+}
+
+function renderProduct(product) {
+  currentProduct = product;
+  document.title = `${product.name} | Nét nhỏ.`;
+  document.querySelector("#breadcrumb-product").textContent = product.name;
+  document.querySelector("#detail-category").textContent =
+    getCategoryName(product);
+  document.querySelector("#detail-name").textContent = product.name;
+  document.querySelector("#detail-stars").textContent = formatRating(
+    product.rating,
+  );
+  document.querySelector("#detail-rating").textContent =
+    product.rating.toFixed(1);
+  document.querySelector("#detail-review-count").textContent =
+    `${product.reviewCount} đánh giá`;
+  document.querySelector("#detail-price").textContent = formatPrice(
+    product.price,
+  );
+  document.querySelector("#detail-description").textContent =
+    getDescription(product);
+  document.querySelector("#description-heading").textContent = product.name;
+  document.querySelector("#description-copy").textContent =
+    `${getDescription(product)} Sản phẩm được đóng gói cẩn thận trước khi giao đến bạn.`;
+  document.querySelector("#review-average").textContent = product.rating
+    .toFixed(1)
+    .replace(".", ",");
+  document.querySelector("#review-average-stars").textContent = formatRating(
+    product.rating,
+  );
+  document.querySelector("#review-summary-count").textContent =
+    `${product.reviewCount} đánh giá`;
+  document.querySelector("#review-list-count").textContent =
+    `${product.reviewCount} đánh giá`;
+  document.querySelector("#tab-review-count").textContent = String(
+    product.reviewCount,
+  );
+  const detailFavorite = document.querySelector("#detail-favorite");
+  detailFavorite.dataset.favoriteProductId = product.id;
+  detailFavorite.dataset.favoriteProductName = product.name;
+
+  const originalPrice = document.querySelector("#detail-original-price");
+  const discount = document.querySelector("#detail-discount");
+  const saleBadge = document.querySelector("#detail-sale-badge");
+  if (product.originalPrice) {
+    const discountPercent = Math.round(
+      ((product.originalPrice - product.price) / product.originalPrice) * 100,
+    );
+    originalPrice.textContent = formatPrice(product.originalPrice);
+    originalPrice.hidden = false;
+    discount.textContent = `-${discountPercent}%`;
+    discount.hidden = false;
+    saleBadge.textContent = `-${discountPercent}%`;
+    saleBadge.hidden = false;
+  }
+
+  renderGallery(product);
+  renderColorOptions(product);
+  renderSpecifications(product);
+  renderReviewBars(product.reviewCount);
+  renderRelatedProducts(product);
+  updateFavoriteButtons();
+  updateCartCount();
+  productStatus.hidden = true;
+  productContent.hidden = false;
+}
+
+function renderReviewBars(reviewCount) {
+  const bars = document.querySelector("#review-bars");
+  [5, 4, 3, 2, 1].forEach((rating, index) => {
+    const row = document.createElement("div");
+    row.className = "review-bar-row";
+    const label = document.createElement("span");
+    label.textContent = `${rating}★`;
+    const track = document.createElement("div");
+    track.className = "review-bar-track";
+    const fill = document.createElement("span");
+    fill.style.width = `${[78, 16, 4, 1, 1][index]}%`;
+    track.append(fill);
+    const count = document.createElement("span");
+    count.textContent = String(
+      Math.round(reviewCount * [0.78, 0.16, 0.04, 0.01, 0.01][index]),
+    );
+    row.append(label, track, count);
+    bars.append(row);
+  });
+}
+
+function addProductToCart(buyNow = false) {
+  if (!currentProduct) return;
+  const selectedQuantity = Math.max(
+    1,
+    Math.floor(Number(document.querySelector("#quantity").value) || 1),
+  );
+  const variant = selectedColor;
+  addToCart(currentProduct, selectedQuantity, variant);
+  document.querySelector("#detail-cart-status").textContent =
+    `Đã thêm ${selectedQuantity} sản phẩm vào giỏ hàng.`;
+  if (buyNow) {
+    window.location.href = "../../pages/cart/cart.html";
+  }
+}
+
+function createRelatedCard(product) {
+  const card = document.createElement("article");
+  card.className = "related-card";
+
+  const imageContainer = document.createElement("div");
+  imageContainer.className = "related-card-image";
+  const imageLink = document.createElement("a");
+  imageLink.href = `product.html?id=${encodeURIComponent(product.id)}`;
+  imageLink.setAttribute("aria-label", `Xem chi tiết ${product.name}`);
+  const image = document.createElement("img");
+  image.src = product.image;
+  image.alt = product.name;
+  image.loading = "lazy";
+  imageLink.append(image);
+
+  const favoriteButton = document.createElement("button");
+  favoriteButton.className = "related-card-favorite";
+  favoriteButton.type = "button";
+  favoriteButton.dataset.favoriteProductId = product.id;
+  favoriteButton.dataset.favoriteProductName = product.name;
+  favoriteButton.addEventListener("click", () => {
+    favoriteStore.toggle(product.id);
+  });
+  imageContainer.append(imageLink, favoriteButton);
+
+  const name = document.createElement("h3");
+  const nameLink = document.createElement("a");
+  nameLink.href = imageLink.href;
+  nameLink.textContent = product.name;
+  name.append(nameLink);
+
+  const rating = document.createElement("p");
+  rating.className = "related-card-rating";
+  rating.append(
+    document.createTextNode(formatRating(product.rating)),
+    Object.assign(document.createElement("span"), {
+      textContent: `(${product.reviewCount})`,
+    }),
+  );
+
+  const price = document.createElement("div");
+  price.className = "related-card-price";
+  const currentPrice = document.createElement("strong");
+  currentPrice.textContent = formatPrice(product.price);
+  price.append(currentPrice);
+  if (product.originalPrice) {
+    const originalPrice = document.createElement("del");
+    originalPrice.textContent = formatPrice(product.originalPrice);
+    price.append(originalPrice);
+  }
+
+  const addButton = document.createElement("button");
+  addButton.className = "related-card-add";
+  addButton.type = "button";
+  addButton.setAttribute("aria-label", `Thêm ${product.name} vào giỏ hàng`);
+  addButton.textContent = "＋";
+  addButton.addEventListener("click", () => {
+    addToCart(product, 1);
+    document.querySelector("#detail-cart-status").textContent =
+      `Đã thêm “${product.name}” vào giỏ hàng.`;
+  });
+  price.append(addButton);
+
+  card.append(imageContainer, name, rating, price);
+  return card;
+}
+
+function renderRelatedProducts(product) {
+  const relatedProducts = allProducts
+    .filter((item) => item.id !== product.id)
+    .sort((left, right) => {
+      const leftMatch = left.category.some((category) =>
+        product.category.includes(category),
+      );
+      const rightMatch = right.category.some((category) =>
+        product.category.includes(category),
+      );
+      return Number(rightMatch) - Number(leftMatch);
+    })
+    .slice(0, 4);
+
+  document
+    .querySelector("#related-products-grid")
+    .replaceChildren(...relatedProducts.map(createRelatedCard));
+}
+
+function renderReviews(reviews, product) {
+  const reviewCards = document.querySelector("#product-review-cards");
+  const topic = getReviewTopic(product);
+  const matchingReviews = reviews.filter((review) => review.product === topic);
+  if (matchingReviews.length === 0) {
+    document.querySelector("#product-reviews-status").textContent =
+      "Chưa có nhận xét nào cho sản phẩm này.";
+    return;
+  }
+
+  matchingReviews.slice(0, 3).forEach((review) => {
+    const card = document.createElement("article");
+    card.className = "detail-review";
+    const heading = document.createElement("div");
+    heading.className = "detail-review-head";
+    const customer = document.createElement("strong");
+    customer.textContent = review.name;
+    const date = document.createElement("time");
+    date.textContent = "Khách hàng gần đây";
+    heading.append(customer, date);
+    const rating = document.createElement("div");
+    rating.className = "detail-review-stars";
+    rating.textContent = formatRating(review.rating);
+    const comment = document.createElement("p");
+    comment.textContent = review.comment;
+    card.append(heading, rating, comment);
+    reviewCards.append(card);
+  });
+  document.querySelector("#product-reviews-status").textContent =
+    "Một vài nhận xét về nhóm sản phẩm này.";
+}
+
+function setupControls() {
+  const quantity = document.querySelector("#quantity");
+  document.querySelector("#quantity-decrease").addEventListener("click", () => {
+    quantity.value = String(Math.max(1, Number(quantity.value) - 1));
+  });
+  document.querySelector("#quantity-increase").addEventListener("click", () => {
+    quantity.value = String(Math.max(1, Number(quantity.value) || 1) + 1);
+  });
+  quantity.addEventListener("change", () => {
+    quantity.value = String(
+      Math.max(1, Math.floor(Number(quantity.value) || 1)),
+    );
+  });
+
+  document.querySelector("#detail-favorite").addEventListener("click", () => {
+    favoriteStore.toggle(currentProduct.id);
+  });
+  document.querySelector("#detail-add-cart").addEventListener("click", () => {
+    addProductToCart();
+  });
+  document.querySelector("#detail-buy-now").addEventListener("click", () => {
+    addProductToCart(true);
+  });
+
+  const panels = {
+    "description-tab": "description-panel",
+    "specifications-tab": "specifications-panel",
+  };
+  Object.entries(panels).forEach(([tabId, panelId]) => {
+    document.querySelector(`#${tabId}`).addEventListener("click", () => {
+      Object.entries(panels).forEach(([otherTabId, otherPanelId]) => {
+        const active = otherTabId === tabId;
+        const tab = document.querySelector(`#${otherTabId}`);
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+        document.querySelector(`#${otherPanelId}`).hidden = !active;
+      });
+      document.querySelector("#reviews-tab").classList.remove("active");
+      document
+        .querySelector("#reviews-tab")
+        .setAttribute("aria-selected", "false");
+    });
+  });
+  document.querySelector("#reviews-tab").addEventListener("click", (event) => {
+    document.querySelectorAll(".detail-tabs button").forEach((tab) => {
+      tab.classList.toggle("active", tab === event.currentTarget);
+      tab.setAttribute("aria-selected", String(tab === event.currentTarget));
+    });
+    document.querySelector("#product-reviews").scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}
+
+async function loadProduct() {
+  if (!productId) {
+    productStatus.textContent = "Không tìm thấy sản phẩm bạn đang tìm.";
+    return;
+  }
+
+  try {
+    const result = await window.mockApi.getProducts({ limit: 100 });
+    allProducts = result.products;
+    const product = allProducts.find((item) => item.id === productId);
+    if (!product) {
+      productStatus.textContent = "Sản phẩm không tồn tại hoặc đã được gỡ.";
+      return;
+    }
+
+    renderProduct(product);
+  } catch (error) {
+    console.error("Không thể tải chi tiết sản phẩm:", error);
+    productStatus.textContent =
+      "Tải thông tin sản phẩm không thành công. Vui lòng tải lại trang.";
+    return;
+  }
+
+  try {
+    const reviews = await window.mockApi.getReviews({ limit: 100 });
+    renderReviews(reviews.reviews, currentProduct);
+  } catch (error) {
+    console.error("Không thể tải đánh giá sản phẩm:", error);
+    document.querySelector("#product-reviews-status").textContent =
+      "Tải đánh giá không thành công. Vui lòng tải lại trang.";
+  }
+}
+
+favoriteStore.subscribe(updateFavoriteButtons);
+setupControls();
+loadProduct();

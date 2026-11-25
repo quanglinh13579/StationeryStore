@@ -17,6 +17,10 @@ let cart = readCart();
 let discount = 0;
 const selectedIds = new Set();
 
+function getCartItemKey(item) {
+  return JSON.stringify([item.id, item.variant || ""]);
+}
+
 function readCart() {
   try {
     const storedCart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
@@ -41,7 +45,7 @@ function resetDiscount() {
 
 function getSubtotal() {
   return cart.reduce((total, item) => {
-    return selectedIds.has(item.id)
+    return selectedIds.has(getCartItemKey(item))
       ? total + item.price * item.quantity
       : total;
   }, 0);
@@ -58,7 +62,7 @@ function renderCart() {
       <img class="cart-item-image" src="" alt="" />
       <div class="cart-item-info">
         <h3></h3>
-        <p>Phân loại: Tiêu chuẩn</p>
+        <p class="cart-item-variant"></p>
         <div class="cart-item-price"></div>
       </div>
       <div class="quantity">
@@ -71,12 +75,13 @@ function renderCart() {
 
     const itemCheck = row.querySelector(".cart-item-check");
     itemCheck.setAttribute("aria-label", `Chọn ${item.name}`);
-    itemCheck.checked = selectedIds.has(item.id);
+    const itemKey = getCartItemKey(item);
+    itemCheck.checked = selectedIds.has(itemKey);
     itemCheck.addEventListener("change", () => {
       if (itemCheck.checked) {
-        selectedIds.add(item.id);
+        selectedIds.add(itemKey);
       } else {
-        selectedIds.delete(item.id);
+        selectedIds.delete(itemKey);
       }
       discount = 0;
       couponStatus.textContent = "";
@@ -92,6 +97,8 @@ function renderCart() {
       .querySelector(".remove-item")
       .setAttribute("aria-label", `Xóa ${item.name}`);
     row.querySelector("h3").textContent = item.name;
+    row.querySelector(".cart-item-variant").textContent =
+      `Phân loại: ${item.variant || "Tiêu chuẩn"}`;
     const priceElement = row.querySelector(".cart-item-price");
     const currentPrice = document.createElement("strong");
     currentPrice.textContent = formatPrice(item.price);
@@ -127,8 +134,8 @@ function renderCart() {
       renderCart();
     });
     row.querySelector(".remove-item").addEventListener("click", () => {
-      cart = cart.filter((cartItem) => cartItem.id !== item.id);
-      selectedIds.delete(item.id);
+      cart = cart.filter((cartItem) => getCartItemKey(cartItem) !== itemKey);
+      selectedIds.delete(itemKey);
       resetDiscount();
       saveCart();
       renderCart();
@@ -139,7 +146,9 @@ function renderCart() {
   const quantity = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = getSubtotal();
   const selectedQuantity = cart.reduce((total, item) => {
-    return selectedIds.has(item.id) ? total + item.quantity : total;
+    return selectedIds.has(getCartItemKey(item))
+      ? total + item.quantity
+      : total;
   }, 0);
   const delivery = selectedQuantity === 0 || subtotal >= 350000 ? 0 : 30000;
 
@@ -157,12 +166,13 @@ function renderCart() {
   selectAllElement.disabled = cart.length === 0;
   checkoutButton.disabled = selectedQuantity === 0;
   selectAllElement.checked =
-    cart.length > 0 && cart.every((item) => selectedIds.has(item.id));
+    cart.length > 0 &&
+    cart.every((item) => selectedIds.has(getCartItemKey(item)));
 }
 
 selectAllElement.addEventListener("change", () => {
   if (selectAllElement.checked) {
-    cart.forEach((item) => selectedIds.add(item.id));
+    cart.forEach((item) => selectedIds.add(getCartItemKey(item)));
   } else {
     selectedIds.clear();
   }

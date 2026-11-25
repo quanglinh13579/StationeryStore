@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chi tiết sản phẩm | Nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/home.css" />
+    <link rel="stylesheet" href="../../css/shared-layout.css" />
+    <link rel="stylesheet" href="../../css/product.css" />
+  </head>
+  <body>
+    <div id="site-header"></div>
+
+    <main class="product-detail-page container">
+      <nav
+        class="product-breadcrumb"
+        id="product-breadcrumb"
+        aria-label="Điều hướng"
+      >
+        <a href="../../index.html">Trang chủ</a>
+        <span aria-hidden="true">/</span>
+        <a href="../../index.html#products">Sản phẩm</a>
+        <span aria-hidden="true">/</span>
+        <span id="breadcrumb-product">Đang tải...</span>
+      </nav>
+
+      <p
+        class="product-page-status"
+        id="product-page-status"
+        aria-live="polite"
+      >
+        Đang tải thông tin sản phẩm...
+      </p>
+
+      <div id="product-detail-content" hidden>
+        <section class="detail-overview" aria-label="Thông tin sản phẩm">
+          <div class="detail-gallery">
+            <div class="detail-image-stage">
+              <span
+                class="detail-sale-badge"
+                id="detail-sale-badge"
+                hidden
+              ></span>
+              <button
+                class="detail-favorite"
+                id="detail-favorite"
+                type="button"
+                aria-label="Thêm sản phẩm vào yêu thích"
+                aria-pressed="false"
+              >
+                ♡
+              </button>
+              <img id="detail-image" src="" alt="" />
+            </div>
+            <div
+              class="detail-thumbnails"
+              id="detail-thumbnails"
+              aria-label="Ảnh sản phẩm"
+            ></div>
+          </div>
+
+          <div class="detail-info">
+            <div class="detail-eyebrow">
+              <span id="detail-category"></span>
+              <span class="detail-stock"><i></i>Còn hàng</span>
+            </div>
+            <h1 id="detail-name"></h1>
+            <a class="detail-rating" href="#product-reviews">
+              <span id="detail-stars" aria-hidden="true"></span>
+              <strong id="detail-rating"></strong>
+              <span id="detail-review-count"></span>
+            </a>
+            <div class="detail-price-row">
+              <strong class="detail-price" id="detail-price"></strong>
+              <del id="detail-original-price" hidden></del>
+              <span class="detail-discount" id="detail-discount" hidden></span>
+            </div>
+            <p class="detail-description" id="detail-description"></p>
+
+            <div class="detail-variant" id="detail-color-options" hidden>
+              <div class="detail-option-heading">
+                <strong>Màu sắc:</strong>
+                <span id="selected-color"></span>
+              </div>
+              <div class="detail-color-list" id="detail-color-list"></div>
+            </div>
+
+            <div class="detail-spec-line" id="detail-size-line" hidden>
+              <strong>Kích thước:</strong>
+              <span id="detail-size"></span>
+            </div>
+
+            <div class="detail-purchase-row">
+              <div class="detail-quantity" aria-label="Số lượng sản phẩm">
+                <button
+                  id="quantity-decrease"
+                  type="button"
+                  aria-label="Giảm số lượng"
+                >
+                  −
+                </button>
+                <input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value="1"
+                  aria-label="Số lượng"
+                />
+                <button
+                  id="quantity-increase"
+                  type="button"
+                  aria-label="Tăng số lượng"
+                >
+                  +
+                </button>
+              </div>
+              <button
+                class="detail-add-cart"
+                id="detail-add-cart"
+                type="button"
+              >
+                Thêm vào giỏ hàng
+              </button>
+              <button class="detail-buy-now" id="detail-buy-now" type="button">
+                Mua ngay
+              </button>
+            </div>
+            <p
+              class="detail-cart-status"
+              id="detail-cart-status"
+              aria-live="polite"
+            ></p>
+
+            <div class="detail-perks">
+              <p>
+                <span aria-hidden="true">✓</span> Đổi trả dễ dàng trong 7 ngày
+              </p>
+              <p>
+                <span aria-hidden="true">✓</span> Đóng gói cẩn thận, giao tận
+                tay
+              </p>
+              <p>
+                <span aria-hidden="true">✓</span> Miễn phí giao hàng cho đơn từ
+                350.000đ
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="detail-description-section" aria-label="Mô tả sản phẩm">
+          <div
+            class="detail-tabs"
+            role="tablist"
+            aria-label="Thông tin chi tiết"
+          >
+            <button
+              class="active"
+              id="description-tab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="description-panel"
+            >
+              Mô tả sản phẩm
+            </button>
+            <button
+              id="specifications-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="specifications-panel"
+            >
+              Thông số chi tiết
+            </button>
+            <button
+              id="reviews-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="product-reviews"
+            >
+              Đánh giá (<span id="tab-review-count"></span>)
+            </button>
+          </div>
+          <div class="detail-panels">
+            <div
+              class="detail-panel active"
+              id="description-panel"
+              role="tabpanel"
+              aria-labelledby="description-tab"
+            >
+              <h2 id="description-heading"></h2>
+              <p id="description-copy"></p>
+            </div>
+            <div
+              class="detail-panel"
+              id="specifications-panel"
+              role="tabpanel"
+              aria-labelledby="specifications-tab"
+              hidden
+            >
+              <dl class="specification-list" id="specification-list"></dl>
+            </div>
+          </div>
+        </section>
+
+        <section class="product-reviews-section" id="product-reviews">
+          <div class="review-summary">
+            <h2>Bạn dùng rồi, bạn kể.</h2>
+            <strong class="review-average" id="review-average"></strong>
+            <div class="review-average-stars" id="review-average-stars"></div>
+            <p id="review-summary-count"></p>
+            <div class="review-bars" id="review-bars"></div>
+          </div>
+          <div class="product-review-list">
+            <div class="review-list-heading">
+              <h2>Nhận xét từ khách hàng</h2>
+              <span id="review-list-count"></span>
+            </div>
+            <p
+              class="product-reviews-status"
+              id="product-reviews-status"
+              aria-live="polite"
+            >
+              Đang tải đánh giá...
+            </p>
+            <div id="product-review-cards"></div>
+          </div>
+        </section>
+
+        <section class="related-products">
+          <div class="related-heading">
+            <div>
+              <p class="detail-eyebrow">GỢI Ý DÀNH RIÊNG CHO BẠN</p>
+              <h2>Đi cùng nhau thì càng xinh</h2>
+            </div>
+            <a href="../../index.html#products"
+              >Xem tất cả <span aria-hidden="true">↗</span></a
+            >
+          </div>
+          <div class="related-grid" id="related-products-grid"></div>
+        </section>
+      </div>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="../../api/mock-api.js"></script>
+    <script src="../../js/favorites.js"></script>
+    <script src="../../js/header.js"></script>
+    <script src="../../js/footer.js"></script>
+    <script src="product.js"></script>
+  </body>
+</html>

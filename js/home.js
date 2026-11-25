@@ -4,6 +4,7 @@ const productsRetry = document.querySelector("#products-retry");
 const productPrev = document.querySelector("#product-prev");
 const productNext = document.querySelector("#product-next");
 const searchInput = document.querySelector("#product-search input");
+searchInput.value = new URLSearchParams(window.location.search).get("search") || "";
 const searchStatus = document.querySelector("#search-status");
 const favoriteCount = document.querySelector("#favorite-count");
 const favoritesToggle = document.querySelector("#favorites-toggle");
@@ -77,10 +78,17 @@ function createProductCard(product) {
   image.src = product.image;
   image.alt = product.name;
   image.loading = "lazy";
-  imageContainer.append(favoriteButton, image);
+  const detailLink = document.createElement("a");
+  detailLink.href = `pages/product/product.html?id=${encodeURIComponent(product.id)}`;
+  detailLink.setAttribute("aria-label", `Xem chi tiết ${product.name}`);
+  detailLink.append(image);
+  imageContainer.append(favoriteButton, detailLink);
 
   const name = document.createElement("h3");
-  name.textContent = product.name;
+  const nameLink = document.createElement("a");
+  nameLink.href = detailLink.href;
+  nameLink.textContent = product.name;
+  name.append(nameLink);
 
   const rating = document.createElement("p");
   rating.className = "rating";
@@ -113,7 +121,9 @@ function createProductCard(product) {
   addButton.textContent = "＋";
   addButton.addEventListener("click", () => {
     const cart = readCart();
-    const existingItem = cart.find((item) => item.id === product.id);
+    const existingItem = cart.find(
+      (item) => item.id === product.id && !item.variant,
+    );
     if (existingItem) {
       existingItem.quantity += 1;
     } else {

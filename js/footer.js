@@ -2,8 +2,10 @@
   const placeholder = document.querySelector("#site-footer");
   if (!placeholder) return;
 
-  const isCartPage = window.location.pathname.includes("/pages/cart/");
-  const base = isCartPage ? "../.." : ".";
+  const isNestedPage =
+    window.location.pathname.includes("/pages/cart/") ||
+    window.location.pathname.includes("/pages/product/");
+  const base = isNestedPage ? "../.." : ".";
 
   placeholder.innerHTML = `
     <footer>
