@@ -3,18 +3,40 @@ const productGrid = document.querySelector("#product-grid");
 const productsRetry = document.querySelector("#products-retry");
 const productPrev = document.querySelector("#product-prev");
 const productNext = document.querySelector("#product-next");
-const searchInput = document.querySelector("#product-search");
+const searchInput = document.querySelector("#product-search input");
 const searchStatus = document.querySelector("#search-status");
 const favoriteCount = document.querySelector("#favorite-count");
 const favoritesToggle = document.querySelector("#favorites-toggle");
 const cartCount = document.querySelector("#cart-count");
+const favoriteStore = window.stationeryFavorites;
 
 let productCards = [];
 let activeFilter = "all";
-let favoritesView = false;
+let favoritesView =
+  new URLSearchParams(window.location.search).get("favorites") === "1";
 let catalogLoading = false;
-let cartItems = 0;
-const favoriteIds = new Set();
+const CART_STORAGE_KEY = "stationery-cart";
+const favoriteIds = new Set(favoriteStore.getAll());
+
+function readCart() {
+  try {
+    const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
+    return Array.isArray(cart) ? cart : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(cart) {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+}
+
+function getCartCount() {
+  return readCart().reduce((total, item) => total + item.quantity, 0);
+}
+
+let cartItems = getCartCount();
+cartCount.textContent = String(cartItems);
 
 const reviewGrid = document.querySelector("#review-grid");
 const reviewsStatus = document.querySelector("#reviews-status");
@@ -40,23 +62,15 @@ function createProductCard(product) {
   const favoriteButton = document.createElement("button");
   favoriteButton.className = "heart";
   favoriteButton.type = "button";
-  favoriteButton.setAttribute("aria-label", `Thêm ${product.name} vào yêu thích`);
-  favoriteButton.setAttribute("aria-pressed", "false");
-  favoriteButton.textContent = "♡";
+  const isInitiallyFavorite = favoriteIds.has(product.id);
+  favoriteButton.setAttribute(
+    "aria-label",
+    `${isInitiallyFavorite ? "Bỏ" : "Thêm"} ${product.name} ${isInitiallyFavorite ? "khỏi" : "vào"} yêu thích`,
+  );
+  favoriteButton.setAttribute("aria-pressed", String(isInitiallyFavorite));
+  favoriteButton.textContent = isInitiallyFavorite ? "♥" : "♡";
   favoriteButton.addEventListener("click", () => {
-    const isFavorite = favoriteIds.has(product.id);
-    if (isFavorite) {
-      favoriteIds.delete(product.id);
-    } else {
-      favoriteIds.add(product.id);
-    }
-    favoriteButton.setAttribute("aria-pressed", String(!isFavorite));
-    favoriteButton.setAttribute(
-      "aria-label",
-      `${isFavorite ? "Thêm" : "Bỏ"} ${product.name} vào yêu thích`,
-    );
-    favoriteButton.textContent = isFavorite ? "♡" : "♥";
-    updateProducts();
+    favoriteStore.toggle(product.id);
   });
 
   const image = document.createElement("img");
@@ -98,7 +112,22 @@ function createProductCard(product) {
   addButton.setAttribute("aria-label", `Thêm ${product.name} vào giỏ hàng`);
   addButton.textContent = "＋";
   addButton.addEventListener("click", () => {
-    cartItems += 1;
+    const cart = readCart();
+    const existingItem = cart.find((item) => item.id === product.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        quantity: 1,
+      });
+    }
+    saveCart(cart);
+    cartItems = getCartCount();
     cartCount.textContent = String(cartItems);
     searchStatus.textContent = `Đã thêm “${product.name}” vào giỏ hàng.`;
   });
@@ -121,7 +150,8 @@ function matchesCurrentFilter(product) {
 function updateProductControls() {
   const maxScroll = productGrid.scrollWidth - productGrid.clientWidth;
   productPrev.disabled = productGrid.scrollLeft <= 1;
-  productNext.disabled = maxScroll <= 1 || productGrid.scrollLeft >= maxScroll - 1;
+  productNext.disabled =
+    maxScroll <= 1 || productGrid.scrollLeft >= maxScroll - 1;
 }
 
 function updateProducts() {
@@ -152,8 +182,7 @@ function updateProducts() {
   } else if (filteredProducts.length === 0) {
     searchStatus.textContent = "Không tìm thấy sản phẩm phù hợp.";
   } else if (favoritesView) {
-    searchStatus.textContent =
-      `Đang hiển thị ${filteredProducts.length} sản phẩm yêu thích.`;
+    searchStatus.textContent = `Đang hiển thị ${filteredProducts.length} sản phẩm yêu thích.`;
   } else if (query || activeFilter !== "all") {
     searchStatus.textContent = `Hiển thị ${filteredProducts.length} sản phẩm.`;
   } else {
@@ -162,6 +191,28 @@ function updateProducts() {
 
   updateProductControls();
 }
+
+function updateFavoriteButtons() {
+  productCards.forEach(({ product, card }) => {
+    const button = card.querySelector(".heart");
+    const isFavorite = favoriteIds.has(product.id);
+    button.setAttribute("aria-pressed", String(isFavorite));
+    button.setAttribute(
+      "aria-label",
+      isFavorite
+        ? `Bỏ ${product.name} khỏi yêu thích`
+        : `Thêm ${product.name} vào yêu thích`,
+    );
+    button.textContent = isFavorite ? "♥" : "♡";
+  });
+}
+
+favoriteStore.subscribe(() => {
+  favoriteIds.clear();
+  favoriteStore.getAll().forEach((id) => favoriteIds.add(id));
+  updateFavoriteButtons();
+  updateProducts();
+});
 
 async function loadProducts() {
   if (catalogLoading) return;
@@ -181,7 +232,8 @@ async function loadProducts() {
     updateProducts();
   } catch (error) {
     console.error("Không thể tải sản phẩm:", error);
-    searchStatus.textContent = "Tải sản phẩm không thành công. Vui lòng thử lại.";
+    searchStatus.textContent =
+      "Tải sản phẩm không thành công. Vui lòng thử lại.";
     productsRetry.hidden = false;
   } finally {
     catalogLoading = false;
@@ -193,6 +245,9 @@ document.querySelectorAll("[data-filter]").forEach((control) => {
   control.addEventListener("click", () => {
     activeFilter = control.dataset.filter;
     favoritesView = false;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("favorites");
+    window.history.replaceState({}, "", url);
     document.querySelectorAll(".tabs button").forEach((tab) => {
       tab.classList.toggle("active", tab === control);
     });
@@ -201,14 +256,22 @@ document.querySelectorAll("[data-filter]").forEach((control) => {
   });
 });
 
-favoritesToggle.addEventListener("click", () => {
-  favoritesView = !favoritesView;
+favoritesToggle.addEventListener("click", (event) => {
+  event.preventDefault();
+  favoritesView = true;
   activeFilter = "all";
+  const url = new URL(window.location.href);
+  url.searchParams.set("favorites", "1");
+  window.history.replaceState({}, "", url);
   document.querySelectorAll(".tabs button").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.filter === "all");
   });
   productGrid.scrollLeft = 0;
   updateProducts();
+  document.querySelector("#products")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
 });
 
 searchInput.addEventListener("input", () => {
@@ -217,7 +280,9 @@ searchInput.addEventListener("input", () => {
 });
 
 productsRetry.addEventListener("click", loadProducts);
-productGrid.addEventListener("scroll", updateProductControls, { passive: true });
+productGrid.addEventListener("scroll", updateProductControls, {
+  passive: true,
+});
 productPrev.addEventListener("click", () => {
   productGrid.scrollBy({
     left: -productGrid.clientWidth * 0.8,
@@ -296,7 +361,8 @@ async function loadInitialReviews() {
     updateReviewVisibility();
   } catch (error) {
     console.error("Không thể tải đánh giá:", error);
-    reviewsStatus.textContent = "Tải đánh giá không thành công. Vui lòng thử lại.";
+    reviewsStatus.textContent =
+      "Tải đánh giá không thành công. Vui lòng thử lại.";
     reviewsMore.textContent = "Thử tải lại đánh giá";
   } finally {
     reviewsMore.disabled = false;

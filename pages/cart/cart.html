@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Giỏ hàng | nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/cart.css" />
+    <link rel="stylesheet" href="../../css/home.css" />
+    <link rel="stylesheet" href="../../css/shared-layout.css" />
+  </head>
+  <body>
+    <div id="site-header"></div>
+
+    <main>
+      <div class="container cart-page">
+        <div class="cart-heading">
+          <p class="breadcrumb">
+            <a href="../../index.html">Trang chủ</a><span>/</span
+            ><strong>Giỏ hàng</strong>
+          </p>
+          <div class="cart-title-row">
+            <h1>
+              Giỏ nhỏ, niềm vui to. <span id="cart-heading-count">(0)</span>
+            </h1>
+            <ol class="checkout-steps" aria-label="Tiến trình thanh toán">
+              <li class="active"><span>1</span> Giỏ hàng</li>
+              <li><span>2</span> Thông tin &amp; thanh toán</li>
+              <li><span>3</span> Hoàn tất</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="cart-layout">
+          <section
+            class="cart-list"
+            aria-label="Danh sách sản phẩm trong giỏ hàng"
+          >
+            <div class="cart-promo">
+              <strong
+                >Ưu đãi giao hàng: miễn phí vận chuyển cho đơn từ
+                350.000đ</strong
+              >
+              <span>🔵</span>
+            </div>
+            <div class="cart-list-head">
+              <label
+                ><input type="checkbox" id="select-all" />
+                <span>Chọn tất cả</span></label
+              >
+              <button type="button" id="clear-cart">Xóa tất cả</button>
+            </div>
+            <div id="cart-items"></div>
+            <div class="empty-cart" id="empty-cart" hidden>
+              <div class="empty-icon">♡</div>
+              <h2>Giỏ hàng đang trống</h2>
+              <p>Hãy chọn một vài món nhỏ yêu thích nhé.</p>
+              <a href="../../index.html#products">Tiếp tục mua sắm</a>
+            </div>
+          </section>
+
+          <aside class="order-summary" aria-label="Tóm tắt đơn hàng">
+            <h2>Đơn nhỏ của bạn</h2>
+            <p class="coupon-heading">Mã khuyến mãi</p>
+            <div class="summary-row">
+              <span>Tạm tính</span>
+              <strong id="subtotal">0đ</strong>
+            </div>
+            <div class="summary-row">
+              <span>Giảm giá</span>
+              <strong id="discount">0đ</strong>
+            </div>
+            <div class="summary-row delivery">
+              <span>Phí vận chuyển</span>
+              <strong id="delivery">0đ</strong>
+            </div>
+            <div class="coupon">
+              <input
+                id="coupon-code"
+                type="text"
+                placeholder="Nhập mã giảm giá"
+              />
+              <button type="button" id="apply-coupon">Áp dụng</button>
+            </div>
+            <p class="coupon-status" id="coupon-status" aria-live="polite"></p>
+            <div class="summary-total">
+              <span>Tổng cộng</span>
+              <strong id="total">0đ</strong>
+            </div>
+            <button class="checkout" type="button" id="checkout">
+              Tiến hành thanh toán
+            </button>
+            <p class="shipping-note">Miễn phí vận chuyển cho đơn từ 350.000đ</p>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="../../js/favorites.js"></script>
+    <script src="../../js/header.js"></script>
+    <script src="../../js/footer.js"></script>
+    <script src="cart.js"></script>
+  </body>
+</html>
