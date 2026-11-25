@@ -4,7 +4,8 @@
 
   const isNestedPage =
     window.location.pathname.includes("/pages/cart/") ||
-    window.location.pathname.includes("/pages/product/");
+    window.location.pathname.includes("/pages/product/") ||
+    window.location.pathname.includes("/pages/checkout/");
   const base = isNestedPage ? "../.." : ".";
 
   placeholder.innerHTML = `

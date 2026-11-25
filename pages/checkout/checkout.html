@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thanh toán | Nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/cart.css" />
+    <link rel="stylesheet" href="../../css/shared-layout.css" />
+    <link rel="stylesheet" href="../../css/checkout.css" />
+  </head>
+  <body class="checkout-body">
+    <div id="site-header"></div>
+
+    <main class="checkout-page container">
+      <header class="checkout-intro">
+        <span class="checkout-intro-icon" aria-hidden="true">▣</span>
+        <h1>Đặt hàng của bạn</h1>
+        <p>Điền thông tin để hoàn tất đơn hàng nhanh chóng nhé!</p>
+      </header>
+
+      <p
+        class="checkout-page-status"
+        id="checkout-page-status"
+        aria-live="polite"
+      >
+        Đang tải đơn hàng...
+      </p>
+
+      <div class="checkout-layout" id="checkout-layout" hidden>
+        <form class="checkout-form-card" id="checkout-form">
+          <section
+            class="checkout-form-section"
+            aria-labelledby="contact-heading"
+          >
+            <h2 id="contact-heading">
+              <span>1</span>
+              Thông tin liên hệ
+            </h2>
+            <div class="checkout-fields">
+              <label>
+                <span>Họ và tên <b>*</b></span>
+                <input
+                  id="customer-name"
+                  name="name"
+                  type="text"
+                  autocomplete="name"
+                  placeholder="Nhập họ và tên"
+                  minlength="2"
+                  required
+                />
+              </label>
+              <label>
+                <span>Số điện thoại <b>*</b></span>
+                <input
+                  id="customer-phone"
+                  name="phone"
+                  type="tel"
+                  inputmode="tel"
+                  autocomplete="tel"
+                  placeholder="Nhập số điện thoại"
+                  required
+                />
+              </label>
+              <label class="checkout-address">
+                <span>Địa chỉ nhận hàng <b>*</b></span>
+                <input
+                  id="customer-address"
+                  name="address"
+                  type="text"
+                  autocomplete="street-address"
+                  placeholder="Nhập địa chỉ cụ thể"
+                  minlength="5"
+                  required
+                />
+              </label>
+            </div>
+          </section>
+
+          <section
+            class="checkout-form-section payment-section"
+            aria-labelledby="payment-heading"
+          >
+            <h2 id="payment-heading">
+              <span>2</span>
+              Phương thức thanh toán
+            </h2>
+            <div
+              class="payment-options"
+              role="radiogroup"
+              aria-labelledby="payment-heading"
+            >
+              <label class="payment-method">
+                <input type="radio" name="payment" value="cod" checked />
+                <span class="payment-radio" aria-hidden="true"></span>
+                <span class="payment-method-icon" aria-hidden="true">▰</span>
+                <span class="payment-method-copy">
+                  <strong>Thanh toán khi nhận hàng (COD)</strong>
+                  <small>Thanh toán bằng tiền mặt khi nhận hàng</small>
+                </span>
+              </label>
+              <label class="payment-method">
+                <input type="radio" name="payment" value="bank_transfer" />
+                <span class="payment-radio" aria-hidden="true"></span>
+                <span class="payment-method-icon" aria-hidden="true">↗</span>
+                <span class="payment-method-copy">
+                  <strong>Chuyển khoản ngân hàng</strong>
+                  <small>Nhân viên sẽ liên hệ gửi thông tin chuyển khoản</small>
+                </span>
+              </label>
+              <label class="payment-method">
+                <input type="radio" name="payment" value="e_wallet" />
+                <span class="payment-radio" aria-hidden="true"></span>
+                <span class="payment-method-icon" aria-hidden="true">◈</span>
+                <span class="payment-method-copy">
+                  <strong>Ví điện tử (MoMo / ZaloPay)</strong>
+                  <small>Nhân viên sẽ hướng dẫn sau khi xác nhận đơn</small>
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <p
+            class="checkout-submit-status"
+            id="checkout-submit-status"
+            aria-live="polite"
+          ></p>
+          <button class="place-order-button" type="submit">
+            <span aria-hidden="true">♧</span>
+            Đặt hàng ngay
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <aside
+          class="checkout-summary-card"
+          aria-labelledby="order-summary-heading"
+        >
+          <h2 id="order-summary-heading">
+            <span aria-hidden="true">◇</span>
+            Đơn hàng của bạn
+          </h2>
+          <div class="checkout-order-items" id="checkout-order-items"></div>
+          <div class="checkout-summary-lines">
+            <div class="checkout-summary-row">
+              <span>Tạm tính</span>
+              <strong id="checkout-subtotal"></strong>
+            </div>
+            <div class="checkout-summary-row" id="checkout-discount-row" hidden>
+              <span>Giảm giá</span>
+              <strong id="checkout-discount"></strong>
+            </div>
+            <div class="checkout-summary-row">
+              <span>Phí giao hàng</span>
+              <strong id="checkout-delivery"></strong>
+            </div>
+            <div class="checkout-summary-total">
+              <span>Tổng cộng</span>
+              <strong id="checkout-total"></strong>
+            </div>
+          </div>
+          <p class="checkout-security">
+            <span aria-hidden="true">◆</span>
+            Thông tin của bạn được bảo mật
+          </p>
+        </aside>
+      </div>
+
+      <section class="checkout-success" id="checkout-success" hidden>
+        <span class="checkout-success-icon" aria-hidden="true">✓</span>
+        <h2>Đặt hàng thành công!</h2>
+        <p id="checkout-success-message"></p>
+        <p class="checkout-order-number" id="checkout-order-number"></p>
+        <a href="../../index.html#products">Tiếp tục mua sắm</a>
+      </section>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="../../api/mock-api.js"></script>
+    <script src="../../js/favorites.js"></script>
+    <script src="../../js/header.js"></script>
+    <script src="../../js/footer.js"></script>
+    <script src="checkout.js"></script>
+  </body>
+</html>

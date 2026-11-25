@@ -1,4 +1,5 @@
 const CART_STORAGE_KEY = "stationery-cart";
+const CHECKOUT_STORAGE_KEY = "stationery-checkout";
 const cartItemsElement = document.querySelector("#cart-items");
 const emptyCartElement = document.querySelector("#empty-cart");
 const cartCountElement = document.querySelector("#cart-count");
@@ -211,7 +212,28 @@ document.querySelector("#apply-coupon").addEventListener("click", () => {
 });
 
 checkoutButton.addEventListener("click", () => {
-  couponStatus.textContent = "Tính năng thanh toán đang được cập nhật.";
+  const selectedItems = cart.filter((item) =>
+    selectedIds.has(getCartItemKey(item)),
+  );
+  if (selectedItems.length === 0) {
+    couponStatus.textContent = "Hãy chọn sản phẩm cần thanh toán.";
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      CHECKOUT_STORAGE_KEY,
+      JSON.stringify({
+        itemKeys: selectedItems.map(getCartItemKey),
+        discount,
+      }),
+    );
+    window.location.href = "../checkout/checkout.html";
+  } catch (error) {
+    console.error("Không thể bắt đầu thanh toán:", error);
+    couponStatus.textContent =
+      "Chưa thể bắt đầu thanh toán. Vui lòng thử lại.";
+  }
 });
 
 renderCart();

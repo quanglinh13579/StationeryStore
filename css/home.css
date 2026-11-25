@@ -532,6 +532,12 @@ a {
   .product-card {
     flex-basis: calc((100% - 12px) / 2);
   }
+  .product-controls #product-prev {
+    left: 0;
+  }
+  .product-controls #product-next {
+    right: 0;
+  }
   .reviews {
     height: auto;
     padding-bottom: 20px;
