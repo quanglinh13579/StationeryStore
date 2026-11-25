@@ -375,6 +375,7 @@ async function loadInitialReviews() {
       "Tải đánh giá không thành công. Vui lòng thử lại.";
     reviewsMore.textContent = "Thử tải lại đánh giá";
   } finally {
+    reviewGrid.setAttribute("aria-busy", "false");
     reviewsMore.disabled = false;
   }
 }

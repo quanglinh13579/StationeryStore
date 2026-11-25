@@ -17,10 +17,9 @@
   placeholder.innerHTML = `
     <div class="top-strip">
       <div class="container strip-inner">
-        <span>Miễn phí giao hàng từ 350.000đ</span>
+        <span>Học cùng nét nhỏ - kiến thức nhỏ, tương lai lớn!</span>
         <div>
-          <a href="tel:19002525">Hotline: 1900 2525</a>
-          <a href="${isNestedPage ? `${base}/index.html#store` : "#store"}">Địa chỉ cửa hàng</a>
+          <span>Miễn phí vận chuyển cho đơn từ 350.000đ</span>
         </div>
       </div>
     </div>
