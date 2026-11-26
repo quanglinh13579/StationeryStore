@@ -1,5 +1,11 @@
 const express = require("express");
 const { createAuthRouter, requireAdmin, requireAuth } = require("./auth");
+const {
+  createAdminCatalogRouter,
+  createCatalogRouter,
+} = require("./catalog");
+const { createAdminOrdersRouter, createCustomerRouter } = require("./commerce");
+const { ApiError } = require("./errors");
 
 function createApp(db) {
   const app = express();
@@ -18,7 +24,10 @@ function createApp(db) {
     if (origin) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      );
       res.setHeader(
         "Access-Control-Allow-Headers",
         "Content-Type, Authorization",
@@ -41,6 +50,10 @@ function createApp(db) {
   });
 
   app.use("/api/auth", createAuthRouter(db));
+  app.use("/api", createCatalogRouter(db));
+  app.use("/api", createCustomerRouter(db));
+  app.use("/api/admin", createAdminCatalogRouter(db));
+  app.use("/api/admin", createAdminOrdersRouter(db));
   app.get("/api/admin/check", requireAuth, requireAdmin, (req, res) => {
     return res.json({ message: "Quyền Admin hợp lệ.", user: req.user });
   });
@@ -51,6 +64,9 @@ function createApp(db) {
 
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
+    if (error instanceof ApiError) {
+      return res.status(error.status).json({ message: error.message });
+    }
     if (error.type === "entity.too.large") {
       return res.status(413).json({ message: "Dữ liệu gửi lên quá lớn." });
     }

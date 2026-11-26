@@ -1,5 +1,3 @@
-const API_BASE_URL = "http://localhost:3000/api";
-
 function showMessage(element, message, state = "error") {
   element.textContent = message;
   element.dataset.state = state;
@@ -13,18 +11,10 @@ async function submitAuthForm(form, endpoint, messageElement, payload) {
   messageElement.textContent = "";
 
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const result = await response.json().catch(() => null);
-    if (!result) {
-      throw new Error("Phản hồi từ máy chủ không hợp lệ.");
-    }
-    if (!response.ok) {
-      throw new Error(result.message || "Không thể xác thực tài khoản.");
-    }
+    const result = await window.stationeryApi.post(
+      `/auth/${endpoint}`,
+      payload,
+    );
 
     localStorage.setItem("stationery-auth-token", result.token);
     localStorage.setItem("authUser", JSON.stringify(result.user));

@@ -84,6 +84,23 @@
   };
   updateFavoriteCount();
   window.stationeryFavorites.subscribe(updateFavoriteCount);
+  if (window.stationeryApi.isAuthenticated()) {
+    window.stationeryFavorites.load().catch((error) => {
+      console.error("Không thể tải danh sách yêu thích:", error);
+    });
+  }
+
+  const cartCount = placeholder.querySelector("#cart-count");
+  const updateCartCount = () => {
+    cartCount.textContent = String(window.stationeryCart.getCount());
+  };
+  updateCartCount();
+  window.stationeryCart.subscribe(updateCartCount);
+  if (window.stationeryApi.isAuthenticated()) {
+    window.stationeryCart.refresh().catch((error) => {
+      console.error("Không thể tải số lượng giỏ hàng:", error);
+    });
+  }
 
   const search = placeholder.querySelector(`#${searchId}`);
   const searchInput = search.querySelector("input");
@@ -204,7 +221,7 @@
     if (!search.contains(event.target)) closeSuggestions();
   });
 
-  window.mockApi
+  window.stationeryApi
     .getProducts({ limit: 100 })
     .then(({ products }) => {
       searchProducts = products;
@@ -221,15 +238,4 @@
         searchInput.setAttribute("aria-expanded", "true");
       }
     });
-
-  if (isCartPage) {
-    try {
-      const cart = JSON.parse(localStorage.getItem("stationery-cart"));
-      const count = Array.isArray(cart)
-        ? cart.reduce((total, item) => total + item.quantity, 0)
-        : 0;
-      const cartCount = placeholder.querySelector("#cart-count");
-      if (cartCount) cartCount.textContent = String(count);
-    } catch {}
-  }
 })();

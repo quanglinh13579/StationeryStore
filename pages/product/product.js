@@ -3,7 +3,7 @@ const productStatus = document.querySelector("#product-page-status");
 const productContent = document.querySelector("#product-detail-content");
 const cartCount = document.querySelector("#cart-count");
 const favoriteStore = window.stationeryFavorites;
-const cartStorageKey = "stationery-cart";
+const cartStore = window.stationeryCart;
 const productColors = [
   { name: "Xanh cobalt", value: "#286db3" },
   { name: "Cam đất", value: "#ec7846" },
@@ -37,37 +37,11 @@ function getCategoryName(product) {
 }
 
 function getDescription(product) {
-  if (product.category.includes("notebook")) {
-    return `${product.name} là người bạn đồng hành gọn gàng cho những ghi chú, kế hoạch và ý tưởng mỗi ngày. Thiết kế tiện dụng, dễ mang theo và phù hợp cho học tập lẫn công việc.`;
-  }
-  if (product.category.includes("pen") || product.category.includes("color")) {
-    return `${product.name} giúp việc học tập và sáng tạo thêm thú vị. Sản phẩm được chọn lọc để dễ sử dụng hằng ngày, phù hợp mang đến lớp học hoặc góc làm việc.`;
-  }
-  return `${product.name} được chọn lọc để làm góc học tập thêm ngăn nắp và truyền cảm hứng. Thiết kế tiện dụng, phù hợp sử dụng mỗi ngày hoặc làm món quà nhỏ xinh.`;
-}
-
-function getReviewTopic(product) {
-  if (product.category.includes("notebook")) return "Sổ tay";
-  if (product.category.includes("pen") || product.category.includes("color")) {
-    return "Bút màu";
-  }
-  if (product.category.includes("accessory")) return "Túi bút";
-  if (product.category.includes("stationery")) return "Giấy ghi chú";
-  return "";
-}
-
-function readCart() {
-  try {
-    const storedCart = JSON.parse(localStorage.getItem(cartStorageKey));
-    return Array.isArray(storedCart) ? storedCart : [];
-  } catch {
-    return [];
-  }
+  return product.description;
 }
 
 function updateCartCount() {
-  const count = readCart().reduce((total, item) => total + item.quantity, 0);
-  cartCount.textContent = String(count);
+  cartCount.textContent = String(cartStore.getCount());
 }
 
 function updateFavoriteButtons() {
@@ -87,27 +61,8 @@ function updateFavoriteButtons() {
   });
 }
 
-function addToCart(product, quantity, variant = "") {
-  const cart = readCart();
-  const existingItem = cart.find(
-    (item) => item.id === product.id && (item.variant || "") === variant,
-  );
-
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    cart.push({
-      id: product.id,
-      name: product.name,
-      image: product.image,
-      price: product.price,
-      originalPrice: product.originalPrice,
-      quantity,
-      ...(variant ? { variant } : {}),
-    });
-  }
-
-  localStorage.setItem(cartStorageKey, JSON.stringify(cart));
+async function addToCart(product, quantity, variant = "") {
+  await cartStore.add(product.id, quantity, variant);
   updateCartCount();
 }
 
@@ -177,7 +132,7 @@ function renderSpecifications(product) {
       "Quy cách",
       product.category.includes("notebook") ? "Khổ A5" : "Tiêu chuẩn",
     ],
-    ["Tình trạng", "Còn hàng"],
+    ["Tình trạng", product.stock > 0 ? `Còn hàng (${product.stock})` : "Hết hàng"],
   ];
   const list = document.querySelector("#specification-list");
 
@@ -249,6 +204,20 @@ function renderProduct(product) {
   renderGallery(product);
   renderColorOptions(product);
   renderSpecifications(product);
+  const stockLabel = document.querySelector(".detail-stock");
+  const stockIcon = stockLabel.querySelector("i");
+  stockLabel.replaceChildren(
+    stockIcon,
+    document.createTextNode(
+      product.stock > 0 ? `Còn hàng (${product.stock})` : "Hết hàng",
+    ),
+  );
+  const addButton = document.querySelector("#detail-add-cart");
+  const buyButton = document.querySelector("#detail-buy-now");
+  const quantityInput = document.querySelector("#quantity");
+  quantityInput.max = String(product.stock);
+  addButton.disabled = product.stock < 1;
+  buyButton.disabled = product.stock < 1;
   renderReviewBars(product.reviewCount);
   renderRelatedProducts(product);
   updateFavoriteButtons();
@@ -278,18 +247,26 @@ function renderReviewBars(reviewCount) {
   });
 }
 
-function addProductToCart(buyNow = false) {
+async function addProductToCart(buyNow = false) {
   if (!currentProduct) return;
   const selectedQuantity = Math.max(
     1,
     Math.floor(Number(document.querySelector("#quantity").value) || 1),
   );
   const variant = selectedColor;
-  addToCart(currentProduct, selectedQuantity, variant);
-  document.querySelector("#detail-cart-status").textContent =
-    `Đã thêm ${selectedQuantity} sản phẩm vào giỏ hàng.`;
-  if (buyNow) {
-    window.location.href = "../../pages/cart/cart.html";
+  const status = document.querySelector("#detail-cart-status");
+  try {
+    await addToCart(currentProduct, selectedQuantity, variant);
+    status.textContent =
+      `Đã thêm ${selectedQuantity} sản phẩm vào giỏ hàng.`;
+    if (buyNow) {
+      window.location.href = "../../pages/cart/cart.html";
+    }
+  } catch (error) {
+    status.textContent =
+      error.status === 401
+        ? "Đăng nhập để thêm sản phẩm vào giỏ hàng."
+        : error.message;
   }
 }
 
@@ -313,8 +290,15 @@ function createRelatedCard(product) {
   favoriteButton.type = "button";
   favoriteButton.dataset.favoriteProductId = product.id;
   favoriteButton.dataset.favoriteProductName = product.name;
-  favoriteButton.addEventListener("click", () => {
-    favoriteStore.toggle(product.id);
+  favoriteButton.addEventListener("click", async () => {
+    try {
+      await favoriteStore.toggle(product.id);
+    } catch (error) {
+      document.querySelector("#detail-cart-status").textContent =
+        error.status === 401
+          ? "Đăng nhập để lưu sản phẩm yêu thích."
+          : error.message;
+    }
   });
   imageContainer.append(imageLink, favoriteButton);
 
@@ -349,10 +333,18 @@ function createRelatedCard(product) {
   addButton.type = "button";
   addButton.setAttribute("aria-label", `Thêm ${product.name} vào giỏ hàng`);
   addButton.textContent = "＋";
-  addButton.addEventListener("click", () => {
-    addToCart(product, 1);
-    document.querySelector("#detail-cart-status").textContent =
-      `Đã thêm “${product.name}” vào giỏ hàng.`;
+  addButton.disabled = product.stock < 1;
+  addButton.addEventListener("click", async () => {
+    try {
+      await addToCart(product, 1);
+      document.querySelector("#detail-cart-status").textContent =
+        `Đã thêm “${product.name}” vào giỏ hàng.`;
+    } catch (error) {
+      document.querySelector("#detail-cart-status").textContent =
+        error.status === 401
+          ? "Đăng nhập để thêm sản phẩm vào giỏ hàng."
+          : error.message;
+    }
   });
   price.append(addButton);
 
@@ -379,17 +371,16 @@ function renderRelatedProducts(product) {
     .replaceChildren(...relatedProducts.map(createRelatedCard));
 }
 
-function renderReviews(reviews, product) {
+function renderReviews(reviews) {
   const reviewCards = document.querySelector("#product-review-cards");
-  const topic = getReviewTopic(product);
-  const matchingReviews = reviews.filter((review) => review.product === topic);
-  if (matchingReviews.length === 0) {
+  reviewCards.replaceChildren();
+  if (reviews.length === 0) {
     document.querySelector("#product-reviews-status").textContent =
       "Chưa có nhận xét nào cho sản phẩm này.";
     return;
   }
 
-  matchingReviews.slice(0, 3).forEach((review) => {
+  reviews.slice(0, 3).forEach((review) => {
     const card = document.createElement("article");
     card.className = "detail-review";
     const heading = document.createElement("div");
@@ -417,23 +408,40 @@ function setupControls() {
     quantity.value = String(Math.max(1, Number(quantity.value) - 1));
   });
   document.querySelector("#quantity-increase").addEventListener("click", () => {
-    quantity.value = String(Math.max(1, Number(quantity.value) || 1) + 1);
+    quantity.value = String(
+      Math.min(
+        currentProduct?.stock || 1,
+        Math.max(1, Number(quantity.value) || 1) + 1,
+      ),
+    );
   });
   quantity.addEventListener("change", () => {
     quantity.value = String(
-      Math.max(1, Math.floor(Number(quantity.value) || 1)),
+      Math.min(
+        currentProduct?.stock || 1,
+        Math.max(1, Math.floor(Number(quantity.value) || 1)),
+      ),
     );
   });
 
-  document.querySelector("#detail-favorite").addEventListener("click", () => {
-    favoriteStore.toggle(currentProduct.id);
-  });
-  document.querySelector("#detail-add-cart").addEventListener("click", () => {
-    addProductToCart();
-  });
-  document.querySelector("#detail-buy-now").addEventListener("click", () => {
-    addProductToCart(true);
-  });
+  document
+    .querySelector("#detail-favorite")
+    .addEventListener("click", async () => {
+      try {
+        await favoriteStore.toggle(currentProduct.id);
+      } catch (error) {
+        document.querySelector("#detail-cart-status").textContent =
+          error.status === 401
+            ? "Đăng nhập để lưu sản phẩm yêu thích."
+            : error.message;
+      }
+    });
+  document
+    .querySelector("#detail-add-cart")
+    .addEventListener("click", () => addProductToCart());
+  document
+    .querySelector("#detail-buy-now")
+    .addEventListener("click", () => addProductToCart(true));
 
   const panels = {
     "description-tab": "description-panel",
@@ -473,25 +481,33 @@ async function loadProduct() {
   }
 
   try {
-    const result = await window.mockApi.getProducts({ limit: 100 });
-    allProducts = result.products;
-    const product = allProducts.find((item) => item.id === productId);
-    if (!product) {
-      productStatus.textContent = "Sản phẩm không tồn tại hoặc đã được gỡ.";
-      return;
+    const [productResult, productList] = await Promise.all([
+      window.stationeryApi.getProduct(productId),
+      window.stationeryApi.getProducts({ limit: 100 }),
+    ]);
+    const product = productResult.product;
+    allProducts = productList.products;
+    try {
+      await favoriteStore.load();
+    } catch (error) {
+      console.error("Không thể tải danh sách yêu thích:", error);
     }
-
     renderProduct(product);
   } catch (error) {
     console.error("Không thể tải chi tiết sản phẩm:", error);
     productStatus.textContent =
-      "Tải thông tin sản phẩm không thành công. Vui lòng tải lại trang.";
+      error.status === 404
+        ? "Sản phẩm không tồn tại hoặc đã được gỡ."
+        : "Tải thông tin sản phẩm không thành công. Vui lòng tải lại trang.";
     return;
   }
 
   try {
-    const reviews = await window.mockApi.getReviews({ limit: 100 });
-    renderReviews(reviews.reviews, currentProduct);
+    const result = await window.stationeryApi.getReviews({
+      productId: currentProduct.id,
+      limit: 100,
+    });
+    renderReviews(result.reviews);
   } catch (error) {
     console.error("Không thể tải đánh giá sản phẩm:", error);
     document.querySelector("#product-reviews-status").textContent =
@@ -500,5 +516,9 @@ async function loadProduct() {
 }
 
 favoriteStore.subscribe(updateFavoriteButtons);
+cartStore.subscribe(updateCartCount);
+cartStore.refresh().catch((error) => {
+  console.error("Không thể tải giỏ hàng:", error);
+});
 setupControls();
 loadProduct();

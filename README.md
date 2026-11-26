@@ -1,7 +1,8 @@
 # StationeryStore
 
 Website bán đồ dùng học tập. Frontend dùng HTML, CSS và JavaScript thuần; Backend
-hiện triển khai đăng ký, đăng nhập và xác thực bằng Express, MySQL và JWT.
+dùng Express, MySQL và JWT cho xác thực, sản phẩm, danh mục, giỏ hàng, yêu thích,
+đơn hàng và các API quản trị.
 
 ## Yêu cầu
 
@@ -12,7 +13,9 @@ hiện triển khai đăng ký, đăng nhập và xác thực bằng Express, My
 ## Cài đặt Backend
 
 1. Mở `database/schema.sql` trong MySQL Workbench, chọn kết nối MySQL và chạy
-   script để tạo database cùng bảng `users`.
+   script để tạo database cùng toàn bộ bảng cần thiết.
+2. Chạy `database/seed.sql` để thêm danh mục, sản phẩm và đánh giá ban đầu vào
+   MySQL. Đây là dữ liệu khởi tạo trong database, không phải Mock API.
 
    Máy phát triển Windows đã được cài MySQL portable để kiểm thử. Nếu dùng bản
    này, mở một PowerShell riêng và chạy lệnh sau; giữ cửa sổ này mở trong lúc
@@ -29,7 +32,7 @@ hiện triển khai đăng ký, đăng nhập và xác thực bằng Express, My
    Nếu đã cài MySQL bằng installer, chỉ cần khởi động dịch vụ MySQL thay vì
    chạy lệnh portable trên.
 
-2. Tạo file cấu hình cục bộ:
+3. Tạo file cấu hình cục bộ:
 
    ```powershell
    Copy-Item .env.example .env
@@ -43,7 +46,7 @@ hiện triển khai đăng ký, đăng nhập và xác thực bằng Express, My
 
    Chép chuỗi được in ra vào `JWT_SECRET`. Không đưa `.env` lên Git.
 
-3. Cài package và chạy API:
+4. Cài package và chạy API:
 
    ```powershell
    npm install
@@ -51,25 +54,49 @@ hiện triển khai đăng ký, đăng nhập và xác thực bằng Express, My
    ```
 
    Mở `http://localhost:3000/api/health`; kết quả cần có
-   `"database": "connected"`.
+   `"database": "connected"`. Nếu cổng 3000 đang được một tiến trình khác sử
+   dụng, dừng API cũ trước khi chạy lại để tiến trình mới nạp các route hiện
+   tại.
 
-4. Mở `index.html` bằng Live Server. Màn hình đăng nhập/đăng ký nằm chung tại
-   `pages/auth/login.html` và gửi yêu cầu đến API ở `http://localhost:3000`.
+5. Mở `index.html` bằng Live Server. Frontend gọi API tại
+   `http://localhost:3000/api`; màn hình đăng nhập/đăng ký nằm chung tại
+   `pages/auth/login.html`.
 
-## API xác thực
+## API
 
 | Method | Endpoint             | Mô tả                                    |
 | ------ | -------------------- | ---------------------------------------- |
 | POST   | `/api/auth/register` | Tạo tài khoản User                       |
 | POST   | `/api/auth/login`    | Đăng nhập và nhận JWT                    |
 | GET    | `/api/auth/me`       | Lấy tài khoản hiện tại; cần Bearer token |
-| GET    | `/api/admin/check`   | Kiểm tra quyền Admin; cần Bearer token   |
+| GET    | `/api/products`      | Danh sách, tìm kiếm, lọc và phân trang sản phẩm |
+| GET    | `/api/products/:slug` | Chi tiết sản phẩm                       |
+| GET    | `/api/categories`    | Danh sách danh mục                       |
+| GET    | `/api/categories/:slug` | Chi tiết danh mục                     |
+| GET    | `/api/categories/:slug/products` | Sản phẩm theo danh mục       |
+| GET    | `/api/reviews`       | Đánh giá sản phẩm                        |
+| GET    | `/api/cart`          | Xem giỏ hàng; cần đăng nhập              |
+| POST   | `/api/cart/items`    | Thêm/cộng sản phẩm vào giỏ; cần đăng nhập |
+| PATCH/DELETE | `/api/cart/items/:productId` | Sửa hoặc xóa món hàng; cần đăng nhập |
+| DELETE | `/api/cart`          | Xóa giỏ hàng; cần đăng nhập              |
+| GET/POST | `/api/favorites`   | Xem hoặc thêm yêu thích; cần đăng nhập   |
+| DELETE | `/api/favorites/:productId` | Xóa yêu thích; cần đăng nhập       |
+| GET/POST | `/api/orders`     | Xem đơn hàng hoặc đặt hàng; cần đăng nhập |
+| GET    | `/api/orders/:orderId` | Chi tiết đơn hàng của người dùng       |
+| POST/PUT/DELETE | `/api/admin/products[/:slug]` | Quản lý sản phẩm; cần Admin |
+| POST/PUT/DELETE | `/api/admin/categories[/:slug]` | Quản lý danh mục; cần Admin |
+| GET    | `/api/admin/orders`  | Danh sách đơn hàng; cần Admin            |
+| GET    | `/api/admin/orders/:orderId` | Chi tiết đơn hàng; cần Admin      |
+| PATCH  | `/api/admin/orders/:orderId/status` | Cập nhật trạng thái; cần Admin |
+| GET    | `/api/admin/check`   | Kiểm tra quyền Admin                     |
 | GET    | `/api/health`        | Kiểm tra API và kết nối MySQL            |
 
 Đăng ký nhận `name`, `email`, `phone`, `password`. Backend kiểm tra dữ liệu,
 chuẩn hóa email, băm mật khẩu bằng bcryptjs và luôn gán role `user`; trường
 `role` gửi từ trình duyệt không được sử dụng. Đăng nhập nhận `email` và
-`password`.
+`password`. API sản phẩm và danh mục công khai; giỏ hàng, yêu thích và đơn hàng
+gắn với người dùng trong JWT. Backend tính lại tiền đơn hàng và kiểm tra tồn kho
+trước khi ghi nhận đặt hàng.
 
 Sau khi đăng ký/đăng nhập, frontend lưu JWT trong `localStorage` dưới khóa
 `stationery-auth-token`. Gửi token qua header
@@ -92,6 +119,6 @@ npm run dev
 npm test
 ```
 
-`npm test` kiểm tra luồng xác thực bằng database giả lập trong test, không thay
-thế việc chạy MySQL thật. Các chức năng sản phẩm, giỏ hàng, yêu thích và đơn
-hàng chưa được chuyển sang Backend trong phạm vi hiện tại.
+`npm test` chạy các kiểm thử xác thực với database giả lập. Để kiểm tra đầy đủ
+luồng thương mại, cần chạy MySQL và API thật; các kiểm thử tích hợp cũng bao gồm
+sản phẩm/danh mục, giỏ hàng, yêu thích, đặt hàng, tồn kho và quyền Admin.

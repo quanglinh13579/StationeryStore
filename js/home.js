@@ -8,7 +8,6 @@ searchInput.value = new URLSearchParams(window.location.search).get("search") ||
 const searchStatus = document.querySelector("#search-status");
 const favoriteCount = document.querySelector("#favorite-count");
 const favoritesToggle = document.querySelector("#favorites-toggle");
-const cartCount = document.querySelector("#cart-count");
 const favoriteStore = window.stationeryFavorites;
 
 let productCards = [];
@@ -16,28 +15,7 @@ let activeFilter = "all";
 let favoritesView =
   new URLSearchParams(window.location.search).get("favorites") === "1";
 let catalogLoading = false;
-const CART_STORAGE_KEY = "stationery-cart";
 const favoriteIds = new Set(favoriteStore.getAll());
-
-function readCart() {
-  try {
-    const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
-    return Array.isArray(cart) ? cart : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCart(cart) {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-}
-
-function getCartCount() {
-  return readCart().reduce((total, item) => total + item.quantity, 0);
-}
-
-let cartItems = getCartCount();
-cartCount.textContent = String(cartItems);
 
 const reviewGrid = document.querySelector("#review-grid");
 const reviewsStatus = document.querySelector("#reviews-status");
@@ -70,8 +48,15 @@ function createProductCard(product) {
   );
   favoriteButton.setAttribute("aria-pressed", String(isInitiallyFavorite));
   favoriteButton.textContent = isInitiallyFavorite ? "♥" : "♡";
-  favoriteButton.addEventListener("click", () => {
-    favoriteStore.toggle(product.id);
+  favoriteButton.addEventListener("click", async () => {
+    try {
+      await favoriteStore.toggle(product.id);
+    } catch (error) {
+      searchStatus.textContent =
+        error.status === 401
+          ? "Đăng nhập để lưu sản phẩm yêu thích."
+          : error.message;
+    }
   });
 
   const image = document.createElement("img");
@@ -119,27 +104,17 @@ function createProductCard(product) {
   addButton.type = "button";
   addButton.setAttribute("aria-label", `Thêm ${product.name} vào giỏ hàng`);
   addButton.textContent = "＋";
-  addButton.addEventListener("click", () => {
-    const cart = readCart();
-    const existingItem = cart.find(
-      (item) => item.id === product.id && !item.variant,
-    );
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        image: product.image,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        quantity: 1,
-      });
+  addButton.disabled = product.stock < 1;
+  addButton.addEventListener("click", async () => {
+    try {
+      await window.stationeryCart.add(product.id, 1);
+      searchStatus.textContent = `Đã thêm “${product.name}” vào giỏ hàng.`;
+    } catch (error) {
+      searchStatus.textContent =
+        error.status === 401
+          ? "Đăng nhập để thêm sản phẩm vào giỏ hàng."
+          : error.message;
     }
-    saveCart(cart);
-    cartItems = getCartCount();
-    cartCount.textContent = String(cartItems);
-    searchStatus.textContent = `Đã thêm “${product.name}” vào giỏ hàng.`;
   });
   price.append(addButton);
 
@@ -186,7 +161,10 @@ function updateProducts() {
     favoritesView ? "Hiển thị tất cả sản phẩm" : "Chỉ xem sản phẩm yêu thích",
   );
 
-  if (favoritesView && favoriteIds.size === 0) {
+  if (favoritesView && !window.stationeryApi.isAuthenticated()) {
+    searchStatus.textContent =
+      "Đăng nhập để xem danh sách sản phẩm yêu thích của bạn.";
+  } else if (favoritesView && favoriteIds.size === 0) {
     searchStatus.textContent =
       "Bạn chưa có sản phẩm yêu thích. Hãy nhấn ♡ trên sản phẩm để lưu lại.";
   } else if (filteredProducts.length === 0) {
@@ -231,7 +209,21 @@ async function loadProducts() {
   searchStatus.textContent = "Đang tải sản phẩm...";
 
   try {
-    const result = await window.mockApi.getProducts({ limit: 100 });
+    const [result, categories] = await Promise.all([
+      window.stationeryApi.getProducts({ limit: 100 }),
+      window.stationeryApi.getCategories(),
+    ]);
+    try {
+      await favoriteStore.load();
+    } catch (error) {
+      console.error("Không thể tải danh sách yêu thích:", error);
+    }
+    categories.categories.forEach((category) => {
+      const count = document.querySelector(
+        `[data-category-count="${category.slug}"]`,
+      );
+      if (count) count.textContent = String(category.productsCount);
+    });
     productGrid.replaceChildren();
     productCards = result.products.map((product) => {
       const card = createProductCard(product);
@@ -358,15 +350,14 @@ async function loadInitialReviews() {
   reviewsStatus.textContent = "Đang tải đánh giá...";
 
   try {
-    const result = await window.mockApi.getReviews({
-      offset: 0,
+    const result = await window.stationeryApi.getReviews({
+      page: 1,
       limit: REVIEW_PAGE_SIZE,
     });
     reviewTotal = result.total;
     reviewCards = result.reviews.map(createReviewCard);
     reviewGrid.replaceChildren(...reviewCards);
-    reviewOffset =
-      result.nextOffset === null ? result.total : result.nextOffset;
+    reviewOffset = result.reviews.length;
     reviewsInitialized = true;
     updateReviewVisibility();
   } catch (error) {
@@ -387,15 +378,14 @@ async function loadNextReviewPage() {
   reviewsStatus.textContent = "Đang tải thêm đánh giá...";
 
   try {
-    const result = await window.mockApi.getReviews({
-      offset: reviewOffset,
+    const result = await window.stationeryApi.getReviews({
+      page: Math.floor(reviewOffset / REVIEW_PAGE_SIZE) + 1,
       limit: REVIEW_PAGE_SIZE,
     });
     const newCards = result.reviews.map(createReviewCard);
     reviewCards.push(...newCards);
     reviewGrid.append(...newCards);
-    reviewOffset =
-      result.nextOffset === null ? result.total : result.nextOffset;
+    reviewOffset += result.reviews.length;
     reviewsExpanded = true;
     updateReviewVisibility();
   } catch (error) {

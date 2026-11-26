@@ -1,51 +1,42 @@
 (() => {
-  const STORAGE_KEY = "stationery-favorites";
-  const CHANGE_EVENT = "stationery:favorites-change";
+  const api = window.stationeryApi;
+  const listeners = new Set();
+  let favoriteIds = new Set();
 
-  function getAll() {
-    try {
-      const storedFavorites = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (!Array.isArray(storedFavorites)) return [];
-      return [
-        ...new Set(storedFavorites.filter((id) => typeof id === "string")),
-      ];
-    } catch {
-      return [];
-    }
+  function notify() {
+    listeners.forEach((listener) => listener([...favoriteIds]));
   }
 
-  function notifyChange() {
-    window.dispatchEvent(new Event(CHANGE_EVENT));
+  function setFavorites(products) {
+    favoriteIds = new Set(products.map((product) => product.id));
+    notify();
   }
-
-  function toggle(id) {
-    const favorites = new Set(getAll());
-    const isFavorite = favorites.has(id);
-
-    if (isFavorite) {
-      favorites.delete(id);
-    } else {
-      favorites.add(id);
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...favorites]));
-    notifyChange();
-  }
-
-  function subscribe(callback) {
-    window.addEventListener(CHANGE_EVENT, callback);
-    return () => window.removeEventListener(CHANGE_EVENT, callback);
-  }
-
-  window.addEventListener("storage", (event) => {
-    if (event.key === STORAGE_KEY || event.key === null) {
-      notifyChange();
-    }
-  });
 
   window.stationeryFavorites = Object.freeze({
-    getAll,
-    toggle,
-    subscribe,
+    getAll() {
+      return [...favoriteIds];
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async load() {
+      if (!api.isAuthenticated()) {
+        setFavorites([]);
+        return [];
+      }
+      const result = await api.getFavorites();
+      setFavorites(result.products);
+      return [...favoriteIds];
+    },
+    async toggle(productId) {
+      if (!api.isAuthenticated()) {
+        throw new api.ApiError(401, "Đăng nhập để sử dụng danh sách yêu thích.");
+      }
+      const result = favoriteIds.has(productId)
+        ? await api.removeFavorite(productId)
+        : await api.addFavorite(productId);
+      setFavorites(result.products);
+    },
   });
 })();

@@ -1,7 +1,7 @@
-const CART_STORAGE_KEY = "stationery-cart";
 const CHECKOUT_STORAGE_KEY = "stationery-checkout";
 const cartItemsElement = document.querySelector("#cart-items");
 const emptyCartElement = document.querySelector("#empty-cart");
+const cartStatusElement = document.querySelector("#cart-status");
 const cartCountElement = document.querySelector("#cart-count");
 const headingCountElement = document.querySelector("#cart-heading-count");
 const subtotalElement = document.querySelector("#subtotal");
@@ -13,8 +13,9 @@ const clearCartElement = document.querySelector("#clear-cart");
 const couponInput = document.querySelector("#coupon-code");
 const couponStatus = document.querySelector("#coupon-status");
 const checkoutButton = document.querySelector("#checkout");
-
-let cart = readCart();
+const cartStore = window.stationeryCart;
+let cart = [];
+let discountCode = "";
 let discount = 0;
 const selectedIds = new Set();
 
@@ -22,24 +23,12 @@ function getCartItemKey(item) {
   return JSON.stringify([item.id, item.variant || ""]);
 }
 
-function readCart() {
-  try {
-    const storedCart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
-    return Array.isArray(storedCart) ? storedCart : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCart() {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-}
-
 function formatPrice(price) {
-  return `${price.toLocaleString("vi-VN")}đ`;
+  return `${Number(price).toLocaleString("vi-VN")}đ`;
 }
 
 function resetDiscount() {
+  discountCode = "";
   discount = 0;
   couponStatus.textContent = "";
 }
@@ -52,8 +41,22 @@ function getSubtotal() {
   }, 0);
 }
 
+function setStatus(message, requiresLogin = false) {
+  cartStatusElement.replaceChildren(document.createTextNode(message));
+  if (requiresLogin) {
+    const loginLink = document.createElement("a");
+    loginLink.href = "../auth/login.html";
+    loginLink.textContent = " Đăng nhập";
+    cartStatusElement.append(loginLink);
+  }
+}
+
 function renderCart() {
   cartItemsElement.replaceChildren();
+  const cartKeys = new Set(cart.map(getCartItemKey));
+  selectedIds.forEach((key) => {
+    if (!cartKeys.has(key)) selectedIds.delete(key);
+  });
 
   cart.forEach((item) => {
     const row = document.createElement("article");
@@ -74,20 +77,17 @@ function renderCart() {
       <button class="remove-item" type="button">×</button>
     `;
 
+    const itemKey = getCartItemKey(item);
     const itemCheck = row.querySelector(".cart-item-check");
     itemCheck.setAttribute("aria-label", `Chọn ${item.name}`);
-    const itemKey = getCartItemKey(item);
     itemCheck.checked = selectedIds.has(itemKey);
     itemCheck.addEventListener("change", () => {
-      if (itemCheck.checked) {
-        selectedIds.add(itemKey);
-      } else {
-        selectedIds.delete(itemKey);
-      }
-      discount = 0;
-      couponStatus.textContent = "";
+      if (itemCheck.checked) selectedIds.add(itemKey);
+      else selectedIds.delete(itemKey);
+      resetDiscount();
       renderCart();
     });
+
     const image = row.querySelector(".cart-item-image");
     image.src = item.image;
     image.alt = item.name;
@@ -100,6 +100,7 @@ function renderCart() {
     row.querySelector("h3").textContent = item.name;
     row.querySelector(".cart-item-variant").textContent =
       `Phân loại: ${item.variant || "Tiêu chuẩn"}`;
+
     const priceElement = row.querySelector(".cart-item-price");
     const currentPrice = document.createElement("strong");
     currentPrice.textContent = formatPrice(item.price);
@@ -112,34 +113,26 @@ function renderCart() {
 
     const quantityInput = row.querySelector(".quantity input");
     quantityInput.value = String(item.quantity);
+    quantityInput.max = String(item.stock);
     row
       .querySelector('[data-action="decrease"]')
       .addEventListener("click", () => {
-        item.quantity = Math.max(1, item.quantity - 1);
-        resetDiscount();
-        saveCart();
-        renderCart();
+        updateQuantity(item, Math.max(1, item.quantity - 1));
       });
     row
       .querySelector('[data-action="increase"]')
       .addEventListener("click", () => {
-        item.quantity += 1;
-        resetDiscount();
-        saveCart();
-        renderCart();
+        updateQuantity(item, Math.min(item.stock, item.quantity + 1));
       });
     quantityInput.addEventListener("change", () => {
-      item.quantity = Math.max(1, Number(quantityInput.value) || 1);
-      resetDiscount();
-      saveCart();
-      renderCart();
+      const nextQuantity = Math.max(
+        1,
+        Math.min(item.stock, Math.floor(Number(quantityInput.value) || 1)),
+      );
+      updateQuantity(item, nextQuantity);
     });
     row.querySelector(".remove-item").addEventListener("click", () => {
-      cart = cart.filter((cartItem) => getCartItemKey(cartItem) !== itemKey);
-      selectedIds.delete(itemKey);
-      resetDiscount();
-      saveCart();
-      renderCart();
+      removeItem(item);
     });
     cartItemsElement.append(row);
   });
@@ -151,7 +144,9 @@ function renderCart() {
       ? total + item.quantity
       : total;
   }, 0);
-  const delivery = selectedQuantity === 0 || subtotal >= 350000 ? 0 : 30000;
+  const finalSubtotal = Math.max(0, subtotal - discount);
+  const delivery =
+    selectedQuantity === 0 || finalSubtotal >= 350000 ? 0 : 30000;
 
   cartCountElement.textContent = String(quantity);
   headingCountElement.textContent = `(${quantity})`;
@@ -159,16 +154,33 @@ function renderCart() {
   discountElement.textContent = discount ? `-${formatPrice(discount)}` : "0đ";
   deliveryElement.textContent =
     delivery === 0 ? "Miễn phí" : formatPrice(delivery);
-  totalElement.textContent = formatPrice(
-    Math.max(0, subtotal - discount + delivery),
-  );
+  totalElement.textContent = formatPrice(finalSubtotal + delivery);
   emptyCartElement.hidden = cart.length !== 0;
   clearCartElement.hidden = cart.length === 0;
   selectAllElement.disabled = cart.length === 0;
-  checkoutButton.disabled = selectedQuantity === 0;
+  checkoutButton.disabled =
+    selectedQuantity === 0 || !window.stationeryApi.isAuthenticated();
   selectAllElement.checked =
     cart.length > 0 &&
     cart.every((item) => selectedIds.has(getCartItemKey(item)));
+}
+
+async function updateQuantity(item, quantity) {
+  resetDiscount();
+  try {
+    await cartStore.update(item.id, quantity, item.variant || "");
+  } catch (error) {
+    setStatus(error.message, error.status === 401);
+  }
+}
+
+async function removeItem(item) {
+  resetDiscount();
+  try {
+    await cartStore.remove(item.id, item.variant || "");
+  } catch (error) {
+    setStatus(error.message, error.status === 401);
+  }
 }
 
 selectAllElement.addEventListener("change", () => {
@@ -177,35 +189,35 @@ selectAllElement.addEventListener("change", () => {
   } else {
     selectedIds.clear();
   }
-  discount = 0;
-  couponStatus.textContent = "";
-  document.querySelectorAll(".cart-item-check").forEach((checkbox) => {
-    checkbox.checked = selectAllElement.checked;
-  });
+  resetDiscount();
   renderCart();
 });
 
-clearCartElement.addEventListener("click", () => {
-  cart = [];
-  selectedIds.clear();
-  discount = 0;
-  saveCart();
-  couponStatus.textContent = "";
-  renderCart();
+clearCartElement.addEventListener("click", async () => {
+  try {
+    await cartStore.clear();
+    selectedIds.clear();
+    resetDiscount();
+    setStatus("");
+  } catch (error) {
+    setStatus(error.message, error.status === 401);
+  }
 });
 
 document.querySelector("#apply-coupon").addEventListener("click", () => {
-  if (getSubtotal() === 0) {
-    discount = 0;
+  const subtotal = getSubtotal();
+  if (subtotal === 0) {
+    resetDiscount();
     couponStatus.textContent = "Hãy chọn ít nhất một sản phẩm.";
     renderCart();
     return;
   }
   if (couponInput.value.trim().toUpperCase() === "NETNHO10") {
-    discount = Math.round(getSubtotal() * 0.1);
+    discountCode = "NETNHO10";
+    discount = Math.round(subtotal * 0.1);
     couponStatus.textContent = "Đã áp dụng mã NETNHO10.";
   } else {
-    discount = 0;
+    resetDiscount();
     couponStatus.textContent = "Mã giảm giá không hợp lệ.";
   }
   renderCart();
@@ -219,21 +231,40 @@ checkoutButton.addEventListener("click", () => {
     couponStatus.textContent = "Hãy chọn sản phẩm cần thanh toán.";
     return;
   }
-
-  try {
-    localStorage.setItem(
-      CHECKOUT_STORAGE_KEY,
-      JSON.stringify({
-        itemKeys: selectedItems.map(getCartItemKey),
-        discount,
-      }),
-    );
-    window.location.href = "../checkout/checkout.html";
-  } catch (error) {
-    console.error("Không thể bắt đầu thanh toán:", error);
-    couponStatus.textContent =
-      "Chưa thể bắt đầu thanh toán. Vui lòng thử lại.";
+  if (!window.stationeryApi.isAuthenticated()) {
+    setStatus("Đăng nhập để thanh toán.", true);
+    return;
   }
+
+  localStorage.setItem(
+    CHECKOUT_STORAGE_KEY,
+    JSON.stringify({
+      itemKeys: selectedItems.map(getCartItemKey),
+      couponCode: discountCode,
+    }),
+  );
+  window.location.href = "../checkout/checkout.html";
 });
 
-renderCart();
+cartStore.subscribe((items) => {
+  cart = items;
+  renderCart();
+});
+
+async function loadCart() {
+  if (!window.stationeryApi.isAuthenticated()) {
+    cart = [];
+    renderCart();
+    setStatus("Đăng nhập để xem giỏ hàng của bạn.", true);
+    return;
+  }
+  setStatus("Đang tải giỏ hàng...");
+  try {
+    await cartStore.refresh();
+    setStatus("");
+  } catch (error) {
+    setStatus(error.message, error.status === 401);
+  }
+}
+
+loadCart();
