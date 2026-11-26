@@ -5,7 +5,16 @@
   const isCartPage = window.location.pathname.includes("/pages/cart/");
   const isProductPage = window.location.pathname.includes("/pages/product/");
   const isCheckoutPage = window.location.pathname.includes("/pages/checkout/");
-  const isNestedPage = isCartPage || isProductPage || isCheckoutPage;
+  const isOrdersPage = window.location.pathname.includes("/pages/orders/");
+  const isPaymentResultPage = window.location.pathname.includes(
+    "/pages/payment-result/",
+  );
+  const isNestedPage =
+    isCartPage ||
+    isProductPage ||
+    isCheckoutPage ||
+    isOrdersPage ||
+    isPaymentResultPage;
   if (isCartPage) document.body.classList.add("cart-page-layout");
   const base = isNestedPage ? "../.." : ".";
   const searchId = isCartPage ? "cart-search" : "product-search";
@@ -72,6 +81,15 @@
             <span class="action-icon" aria-hidden="true">⚙</span>
             <span>Quản lý Admin</span>
           </a>
+          <a
+            id="orders-action"
+            href="${base}/pages/orders/index.html"
+            aria-label="Đơn hàng của tôi"
+            hidden
+          >
+            <span class="action-icon" aria-hidden="true">▤</span>
+            <span>Đơn hàng</span>
+          </a>
           <a id="favorites-toggle" href="${favoritesLink}" aria-label="Chỉ xem sản phẩm yêu thích" aria-pressed="false">
             <span class="action-icon">♡</span>
             <span>Yêu thích</span>
@@ -99,10 +117,12 @@
   const loginAction = placeholder.querySelector("#login-action");
   const logoutAction = placeholder.querySelector("#logout-action");
   const adminAction = placeholder.querySelector("#admin-action");
+  const ordersAction = placeholder.querySelector("#orders-action");
   function updateAuthActions() {
     const authenticated = window.stationeryApi.isAuthenticated();
     loginAction.hidden = authenticated;
     logoutAction.hidden = !authenticated;
+    ordersAction.hidden = !authenticated;
     let isAdmin = false;
     if (authenticated) {
       try {

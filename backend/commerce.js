@@ -8,13 +8,15 @@ const { applyMomoResult, createMomoPayment, getMomoConfig } = require("./momo");
 const ORDER_STATUSES = new Set([
   "pending",
   "confirmed",
+  "preparing",
   "shipping",
   "completed",
   "cancelled",
 ]);
 const ORDER_TRANSITIONS = {
   pending: new Set(["confirmed", "cancelled"]),
-  confirmed: new Set(["shipping", "cancelled"]),
+  confirmed: new Set(["preparing", "cancelled"]),
+  preparing: new Set(["shipping", "cancelled"]),
   shipping: new Set(["completed"]),
   completed: new Set(),
   cancelled: new Set(),
@@ -279,6 +281,29 @@ function createCustomerRouter(db) {
          FROM orders WHERE user_id = ? ORDER BY created_at DESC, id DESC`,
         [req.user.id],
       );
+      const itemsByOrderId = new Map();
+      if (orders.length > 0) {
+        const orderIds = orders.map((order) => order.id);
+        const placeholders = orderIds.map(() => "?").join(", ");
+        const [items] = await db.execute(
+          `SELECT order_id AS orderId, product_slug AS productId,
+                  product_name AS name, image_url AS image,
+                  unit_price AS price, quantity, variant
+           FROM order_items WHERE order_id IN (${placeholders})
+           ORDER BY order_id, id`,
+          orderIds,
+        );
+        for (const item of items) {
+          const orderId = Number(item.orderId);
+          if (!itemsByOrderId.has(orderId)) itemsByOrderId.set(orderId, []);
+          itemsByOrderId.get(orderId).push({
+            ...item,
+            price: Number(item.price),
+            quantity: Number(item.quantity),
+            lineTotal: Number(item.price) * Number(item.quantity),
+          });
+        }
+      }
       return res.json({
         orders: orders.map((order) => ({
           ...order,
@@ -286,6 +311,7 @@ function createCustomerRouter(db) {
           discount: Number(order.discount),
           delivery: Number(order.delivery),
           total: Number(order.total),
+          items: itemsByOrderId.get(Number(order.id)) || [],
         })),
       });
     }),
@@ -344,6 +370,11 @@ function createCustomerRouter(db) {
         await connection.execute(
           "UPDATE orders SET status = 'cancelled' WHERE id = ?",
           [orderId],
+        );
+        await connection.execute(
+          `INSERT INTO order_status_history (order_id, status, changed_by)
+           VALUES (?, 'cancelled', ?)`,
+          [orderId, req.user.id],
         );
         return getOrderDetails(connection, orderId, req.user.id);
       });
@@ -517,6 +548,11 @@ function createCustomerRouter(db) {
               total,
             ],
           );
+          await connection.execute(
+            `INSERT INTO order_status_history (order_id, status, changed_by)
+             VALUES (?, 'pending', ?)`,
+            [orderResult.insertId, req.user.id],
+          );
 
           for (const item of orderItems) {
             const [stockResult] = await connection.execute(
@@ -673,6 +709,11 @@ async function getOrderDetails(db, orderId, userId = null) {
      FROM order_items WHERE order_id = ? ORDER BY id`,
     [orderId],
   );
+  const [statusHistory] = await db.execute(
+    `SELECT status, changed_at AS changedAt
+     FROM order_status_history WHERE order_id = ? ORDER BY id`,
+    [orderId],
+  );
   const order = orders[0];
   return {
     ...order,
@@ -680,12 +721,14 @@ async function getOrderDetails(db, orderId, userId = null) {
     discount: Number(order.discount),
     delivery: Number(order.delivery),
     total: Number(order.total),
+    estimatedDeliveryAt: null,
     items: items.map((item) => ({
       ...item,
       price: Number(item.price),
       quantity: Number(item.quantity),
       lineTotal: Number(item.price) * Number(item.quantity),
     })),
+    statusHistory,
   };
 }
 
@@ -839,6 +882,11 @@ function createAdminOrdersRouter(db) {
         await connection.execute(
           "UPDATE orders SET status = ? WHERE id = ?",
           [status, orderId],
+        );
+        await connection.execute(
+          `INSERT INTO order_status_history (order_id, status, changed_by)
+           VALUES (?, ?, ?)`,
+          [orderId, status, req.user.id],
         );
         return getOrderDetails(connection, orderId);
       });

@@ -37,6 +37,16 @@ dùng Express, MySQL và JWT cho xác thực, sản phẩm, danh mục, giỏ h�
    Nếu database đã được cập nhật các cột `payment_status` và `momo_*` từ lần
    thử trước, bỏ qua migration này để tránh thêm cột trùng.
 
+   Sau đó chạy migration theo dõi đơn hàng một lần:
+
+   ```powershell
+   mysql -u root -p stationery_store < database/migrations/003_order_tracking.sql
+   ```
+
+   Migration thêm trạng thái `preparing` và bảng `order_status_history`. Lịch sử
+   trước ngày cài migration không được tự tạo vì database không lưu thời điểm
+   các trạng thái cũ; thời gian từng bước sẽ được ghi nhận cho các cập nhật mới.
+
    Máy phát triển Windows đã được cài MySQL portable để kiểm thử. Nếu dùng bản
    này, mở một PowerShell riêng và chạy lệnh sau; giữ cửa sổ này mở trong lúc
    chạy API:
@@ -121,8 +131,8 @@ chuẩn hóa email, băm mật khẩu bằng bcryptjs và luôn gán role `user`
 `password`. API sản phẩm và danh mục công khai; giỏ hàng, yêu thích và đơn hàng
 gắn với người dùng trong JWT. Backend tính lại tiền đơn hàng và kiểm tra tồn kho
 trước khi ghi nhận đặt hàng. Thanh toán hỗ trợ `cod`, `bank_transfer` và `momo`.
-Trạng thái đơn gồm `pending`, `confirmed`,
-`shipping`, `completed` và `cancelled`.
+Trạng thái đơn gồm `pending`, `confirmed`, `preparing`, `shipping`, `completed`
+và `cancelled`.
 
 ### Checkout và đơn hàng
 
@@ -162,12 +172,30 @@ API trả `201` khi tạo đơn mới và `200` khi phát lại kết quả củ
 đã xử lý; gửi lại cùng khóa sẽ không trừ kho hoặc tạo đơn thêm lần nữa. Khóa
 được lưu theo từng người dùng. Không gửi giá sản phẩm hoặc tổng tiền từ client.
 
-`GET /api/orders` liệt kê đơn của tài khoản; `GET /api/orders/:orderId` xem chi
-tiết và chỉ cho chủ đơn truy cập. `POST /api/orders/:orderId/cancel` chỉ hủy
-đơn chưa được thanh toán, hoàn kho trong transaction. Admin chỉ được chuyển
-trạng thái theo luồng `pending -> confirmed -> shipping -> completed`; đơn
-`pending` hoặc `confirmed` có thể được Admin hủy nếu chưa thanh toán. Đơn đã
-hủy/hoàn thành không thể mở lại.
+`GET /api/orders` liệt kê đơn của tài khoản cùng ảnh/tên/số lượng sản phẩm;
+`GET /api/orders/:orderId` trả chi tiết và `statusHistory`, chỉ cho chủ đơn
+truy cập. `POST /api/orders/:orderId/cancel` chỉ hủy đơn chưa được thanh toán,
+hoàn kho trong transaction và ghi lịch sử. Admin chuyển trạng thái theo luồng
+`pending -> confirmed -> preparing -> shipping -> completed`; đơn `pending`,
+`confirmed` hoặc `preparing` có thể được Admin hủy nếu chưa thanh toán. Mỗi đơn
+mới có mốc đặt hàng ban đầu; các lần Admin/callback/hủy đổi trạng thái được ghi
+trong `order_status_history`. Đơn tạo trước migration có thể không có thời gian
+cho các mốc cũ.
+
+### Theo dõi đơn hàng
+
+Khách hàng đăng nhập rồi chọn **Đơn hàng** trên header để mở
+`pages/orders/index.html`. Trang danh sách hiển thị sản phẩm, mã đơn, ngày đặt,
+tổng tiền và trạng thái từ `GET /api/orders`, tự tải lại mỗi 30 giây. **Xem chi
+tiết** mở `pages/orders/detail.html?orderId=<id>`, lấy thông tin người nhận,
+thanh toán và tiến trình qua `GET /api/orders/:orderId`; trang tự đồng bộ trạng
+thái mỗi 15 giây. Ngày giao dự kiến hiển thị **Chưa xác định** nếu API chưa có
+ngày thực tế, không tự ước lượng.
+
+Để thử luồng, đặt một đơn bằng tài khoản User, đăng nhập Admin và cập nhật lần
+lượt `Đã xác nhận` → `Đang chuẩn bị hàng` → `Đang giao hàng` → `Giao hàng thành
+công`. Mở trang chi tiết bằng tài khoản User để xem tiến trình và thời gian mỗi
+bước; có thể chờ tự cập nhật hoặc chuyển lại tab để tải mới.
 
 Checkout hiện giữ giao diện có sẵn, bổ sung ghi chú tùy chọn và gửi khóa
 idempotency ổn định trong suốt một lần checkout. Chuyển khoản chỉ là lựa chọn
@@ -179,13 +207,38 @@ mã yêu cầu, số tiền trước khi cập nhật trạng thái thanh toán.
 hiển thị đã thanh toán khi `GET /api/orders/:orderId` trả `paymentStatus: "paid"`;
 tham số trên URL chuyển hướng không được dùng để xác nhận thanh toán.
 
+### Màn hình kết quả thanh toán
+
+Sau khi tạo đơn COD/chuyển khoản, checkout chuyển đến
+`pages/payment-result/payment-result.html?orderId=<id>`. Khi MoMo chuyển khách
+hàng về checkout, trang checkout chuyển tiếp đến cùng màn hình kết quả. Màn
+hình chỉ dùng `orderId` để gọi `GET /api/orders/:orderId`; mã đơn, tổng tiền,
+phương thức và trạng thái đều lấy từ database qua API có xác thực quyền chủ đơn.
+Không dùng `resultCode`, `paymentStatus` hoặc số tiền trên URL để kết luận giao
+dịch thành công.
+
+- `paymentStatus: "paid"`: hiển thị thanh toán thành công.
+- `paymentStatus: "failed"` hoặc `"cancelled"`: hiển thị thất bại hoặc đã hủy,
+  kèm lý do/mã phản hồi nếu API cung cấp.
+- Trạng thái trực tuyến `"pending"`: hiển thị đang xử lý và hỏi lại API; hết
+thời gian chờ vẫn không hiển thị thành công nếu Backend chưa xác nhận.
+- COD có trạng thái `"unpaid"`: thông báo đặt hàng thành công và nói rõ khách
+  thanh toán khi nhận hàng; không gọi đây là thanh toán đã hoàn tất.
+- Chuyển khoản có trạng thái `"unpaid"`: hiển thị đang chờ xác nhận chuyển khoản.
+
+Backend hiện hỗ trợ `cod`, `bank_transfer` và `momo`; chưa có API, callback hoặc
+cấu hình VNPay trong project. Màn hình nhận diện nhãn VNPay nếu Backend trả về
+phương thức đó, nhưng cần triển khai VNPay phía Backend trước khi có thể xác
+minh hoặc kiểm thử giao dịch VNPay thực tế.
+
 ### Cấu hình MoMo Sandbox
 
 1. Tạo ứng dụng Sandbox trong cổng dành cho nhà phát triển MoMo và lấy Partner
    Code, Access Key, Secret Key.
 2. Điền các giá trị vào `.env` (không đưa file này lên Git). Giữ
    `MOMO_CREATE_URL` trỏ đến Sandbox. `MOMO_REDIRECT_URL` là trang checkout
-   đang chạy trên Live Server.
+   đang chạy trên Live Server; trang này sẽ chuyển tiếp khách đến màn hình kết
+   quả sau khi MoMo quay về.
 3. Cấu hình `MOMO_IPN_URL` thành địa chỉ HTTPS công khai có thể truy cập được
    từ MoMo, ví dụ URL API đã triển khai cùng `/api/payments/momo/ipn`. Không
    dùng `localhost` cho IPN; Sandbox không thể gọi địa chỉ trên máy cá nhân.

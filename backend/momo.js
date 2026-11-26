@@ -202,6 +202,11 @@ async function applyMomoResult(db, result) {
        momo_result_code = ? WHERE id = ?`,
       [paymentStatus, resultCode, order.id],
     );
+    await connection.execute(
+      `INSERT INTO order_status_history (order_id, status)
+       VALUES (?, 'cancelled')`,
+      [order.id],
+    );
     const [items] = await connection.execute(
       `SELECT product_id AS productId, quantity, variant
        FROM order_items WHERE order_id = ? AND product_id IS NOT NULL`,

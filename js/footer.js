@@ -2,47 +2,44 @@
   const placeholder = document.querySelector("#site-footer");
   if (!placeholder) return;
 
+  document.body.classList.add("has-site-footer");
+
   const isNestedPage =
     window.location.pathname.includes("/pages/cart/") ||
     window.location.pathname.includes("/pages/product/") ||
-    window.location.pathname.includes("/pages/checkout/");
+    window.location.pathname.includes("/pages/orders/") ||
+    window.location.pathname.includes("/pages/checkout/") ||
+    window.location.pathname.includes("/pages/payment-result/");
   const base = isNestedPage ? "../.." : ".";
 
   placeholder.innerHTML = `
-    <footer>
+    <footer class="site-footer">
       <div class="container footer-grid" id="store">
-        <div>
+        <section class="footer-about" aria-label="Giới thiệu">
           <a class="brand footer-brand" href="${base}/index.html">
             <span class="brand-mark">✎</span><span>nét nhỏ.</span>
           </a>
-          <p>Đồ dùng học tập và văn phòng phẩm giúp bạn sáng tạo mỗi ngày.</p>
-          <p><a href="#reviews">Instagram　 Facebook　 TikTok</a></p>
-        </div>
-        <div>
-          <h3>Hỗ trợ khách hàng</h3>
-          <p><a href="tel:19002525">Hotline 1900 2525</a></p>
-          <p><a href="mailto:hello@netnho.vn">hello@netnho.vn</a></p>
-          <h3>Chăm sóc khách hàng</h3>
-          <p><a href="#reviews">Câu hỏi thường gặp</a></p>
-        </div>
-        <div>
-          <h3>Hệ thống cửa hàng</h3>
-          <p>39 Nguyễn Huệ</p>
-          <p>TP. Hồ Chí Minh</p>
-          <h3>Thông tin</h3>
-          <p><a href="#store">Về Nét Nhỏ</a></p>
-        </div>
-        <div>
-          <h3>Mua sắm</h3>
-          <p><a href="${base}/index.html#products">Sản phẩm nổi bật</a></p>
-          <p><a href="${base}/index.html#categories">Danh mục sản phẩm</a></p>
-          <h3>Chính sách</h3>
-          <p><a href="#store">Đổi trả &amp; vận chuyển</a></p>
-        </div>
+          <p>Đồ dùng học tập và văn phòng phẩm<br />cho mọi người.</p>
+          <nav class="footer-socials" aria-label="Mạng xã hội">
+            <a href="#reviews" aria-label="Facebook">f</a>
+            <a href="#reviews" aria-label="YouTube">▶</a>
+            <a href="#reviews" aria-label="TikTok">♪</a>
+          </nav>
+        </section>
+        <section class="footer-links" aria-labelledby="footer-links-title">
+          <h3 id="footer-links-title"><span aria-hidden="true">↗</span> Liên kết nhanh</h3>
+          <a href="${base}/index.html">Trang chủ</a>
+          <a href="${base}/index.html#products">Sản phẩm</a>
+          <a href="#store">Liên hệ</a>
+        </section>
+        <section class="footer-contact" aria-labelledby="footer-contact-title">
+          <h3 id="footer-contact-title"><span aria-hidden="true">☎</span> Liên hệ</h3>
+          <a href="mailto:phonglonggg1234@gmail.com"><span aria-hidden="true">✉</span> phonglonggg1234@gmail.com</a>
+        </section>
       </div>
       <div class="container copyright">
-        <span>© 2025 Nét Nhỏ. Bảo lưu mọi quyền.</span>
-        <span>Chính sách bảo mật　|　Điều khoản sử dụng</span>
+        <span>© 2026 Nét Nhỏ. Cùng bạn xây dựng tương lai.</span>
+        <span><span aria-hidden="true">♥</span> Cùng bạn học tập tốt hơn</span>
       </div>
     </footer>
   `;

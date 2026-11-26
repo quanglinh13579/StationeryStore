@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS orders (
   discount_amount DECIMAL(12, 0) NOT NULL DEFAULT 0,
   shipping_fee DECIMAL(12, 0) NOT NULL DEFAULT 0,
   total_amount DECIMAL(12, 0) NOT NULL,
-  status ENUM('pending', 'confirmed', 'shipping', 'completed', 'cancelled')
+  status ENUM('pending', 'confirmed', 'preparing', 'shipping', 'completed', 'cancelled')
     NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -179,6 +179,23 @@ CREATE TABLE IF NOT EXISTS order_items (
   CHECK (unit_price >= 0),
   CHECK (quantity > 0)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS order_status_history (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  order_id INT UNSIGNED NOT NULL,
+  status ENUM('pending', 'confirmed', 'preparing', 'shipping', 'completed', 'cancelled')
+    NOT NULL,
+  changed_by INT UNSIGNED NULL,
+  changed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_order_status_history_order_time (order_id, changed_at, id),
+  CONSTRAINT fk_order_status_history_order
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_status_history_user
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB
+  DEFAULT CHARACTER SET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS reviews (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Theo dõi đơn hàng | Nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/cart.css" />
+    <link rel="stylesheet" href="../../css/shared-layout.css" />
+    <link rel="stylesheet" href="../../css/order-tracking.css" />
+  </head>
+  <body class="order-tracking-body">
+    <div id="site-header"></div>
+
+    <main class="order-detail-page container">
+      <nav class="order-tracking-navigation" aria-label="Điều hướng đơn hàng">
+        <a href="index.html">← Đơn hàng của tôi</a>
+        <a href="../../index.html#products">Tiếp tục mua sắm</a>
+      </nav>
+
+      <p class="orders-page-status" id="order-detail-status" aria-live="polite">
+        Đang tải chi tiết đơn hàng...
+      </p>
+
+      <article class="order-detail-card" id="order-detail-card" hidden>
+        <header class="order-detail-heading">
+          <div>
+            <p class="orders-eyebrow">THEO DÕI ĐƠN HÀNG</p>
+            <h1>Chi tiết đơn hàng</h1>
+            <p>Mã đơn: <strong id="detail-order-number">—</strong></p>
+          </div>
+          <span id="detail-order-status" class="order-status-badge"></span>
+        </header>
+
+        <section class="tracking-progress" aria-labelledby="tracking-progress-title">
+          <div class="tracking-section-heading">
+            <div>
+              <p class="orders-eyebrow">TIẾN TRÌNH GIAO HÀNG</p>
+              <h2 id="tracking-progress-title">Trạng thái đơn hàng</h2>
+            </div>
+            <span id="tracking-refresh-note">Đang đồng bộ...</span>
+          </div>
+          <ol class="tracking-steps" id="tracking-steps"></ol>
+          <p class="tracking-cancel-notice" id="tracking-cancel-notice" hidden></p>
+          <p class="tracking-history-note" id="tracking-history-note" hidden></p>
+        </section>
+
+        <div class="order-detail-columns">
+          <section class="order-detail-panel">
+            <h2>Sản phẩm đã mua</h2>
+            <div class="detail-order-items" id="detail-order-items"></div>
+          </section>
+
+          <section class="order-detail-panel">
+            <h2>Thông tin giao hàng</h2>
+            <dl class="order-information">
+              <div>
+                <dt>Người nhận</dt>
+                <dd id="detail-recipient">—</dd>
+              </div>
+              <div>
+                <dt>Số điện thoại</dt>
+                <dd id="detail-phone">—</dd>
+              </div>
+              <div>
+                <dt>Địa chỉ</dt>
+                <dd id="detail-address">—</dd>
+              </div>
+              <div>
+                <dt>Tổng tiền</dt>
+                <dd id="detail-total">—</dd>
+              </div>
+              <div>
+                <dt>Phương thức thanh toán</dt>
+                <dd id="detail-payment-method">—</dd>
+              </div>
+              <div>
+                <dt>Trạng thái thanh toán</dt>
+                <dd id="detail-payment-status">—</dd>
+              </div>
+              <div>
+                <dt>Ngày đặt hàng</dt>
+                <dd id="detail-created-at">—</dd>
+              </div>
+              <div>
+                <dt>Dự kiến nhận hàng</dt>
+                <dd id="detail-estimated-delivery">—</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+      </article>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="../../js/api.js"></script>
+    <script src="../../js/favorites.js"></script>
+    <script src="../../js/cart-store.js"></script>
+    <script src="../../js/header.js"></script>
+    <script src="../../js/footer.js"></script>
+    <script src="order-detail.js"></script>
+  </body>
+</html>

@@ -14,8 +14,9 @@ const sectionTitles = {
 const orderStatusLabels = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
+  preparing: "Đang chuẩn bị hàng",
   shipping: "Đang giao",
-  completed: "Hoàn thành",
+  completed: "Giao hàng thành công",
   cancelled: "Đã hủy",
 };
 const paymentStatusLabels = {
@@ -27,7 +28,8 @@ const paymentStatusLabels = {
 };
 const orderTransitions = {
   pending: ["confirmed", "cancelled"],
-  confirmed: ["shipping", "cancelled"],
+  confirmed: ["preparing", "cancelled"],
+  preparing: ["shipping", "cancelled"],
   shipping: ["completed"],
   completed: [],
   cancelled: [],

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kết quả thanh toán | Nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/cart.css" />
+    <link rel="stylesheet" href="../../css/shared-layout.css" />
+    <link rel="stylesheet" href="../../css/payment-result.css" />
+  </head>
+  <body class="payment-result-body">
+    <div id="site-header"></div>
+
+    <main class="payment-result-page container">
+      <a class="payment-result-back" href="../../index.html#products">
+        ← Tiếp tục mua sắm
+      </a>
+
+      <section
+        class="payment-result-card"
+        id="payment-result-card"
+        data-state="processing"
+        aria-labelledby="payment-result-heading"
+      >
+        <span
+          class="payment-result-icon"
+          id="payment-result-icon"
+          aria-hidden="true"
+          >…</span
+        >
+        <p class="payment-result-eyebrow">KẾT QUẢ GIAO DỊCH</p>
+        <h1 id="payment-result-heading">Đang xác minh thanh toán</h1>
+        <p
+          class="payment-result-message"
+          id="payment-result-message"
+          aria-live="polite"
+        >
+          Đang lấy trạng thái đơn hàng đã được Backend xác nhận.
+        </p>
+
+        <dl class="payment-result-summary" id="payment-result-summary" hidden>
+          <div>
+            <dt>Mã đơn hàng</dt>
+            <dd id="payment-result-order-number">—</dd>
+          </div>
+          <div>
+            <dt>Tổng tiền</dt>
+            <dd id="payment-result-total">—</dd>
+          </div>
+          <div>
+            <dt>Phương thức</dt>
+            <dd id="payment-result-method">—</dd>
+          </div>
+        </dl>
+        <p class="payment-result-reason" id="payment-result-reason" hidden></p>
+
+        <div class="payment-result-actions">
+          <button
+            class="payment-result-button payment-result-button-primary"
+            id="payment-result-view-order"
+            type="button"
+            aria-expanded="false"
+            aria-controls="payment-result-order-details"
+            hidden
+          >
+            Xem đơn hàng
+          </button>
+          <button
+            class="payment-result-button payment-result-button-secondary"
+            id="payment-result-check-again"
+            type="button"
+            hidden
+          >
+            Kiểm tra lại
+          </button>
+          <a
+            class="payment-result-button payment-result-button-primary"
+            id="payment-result-retry-payment"
+            href="../cart/cart.html"
+            hidden
+          >
+            Thử thanh toán lại
+          </a>
+          <a
+            class="payment-result-button payment-result-button-secondary"
+            id="payment-result-login"
+            href="../auth/login.html"
+            hidden
+          >
+            Đăng nhập để xem kết quả
+          </a>
+          <a
+            class="payment-result-button payment-result-button-secondary"
+            id="payment-result-home"
+            href="../../index.html#products"
+          >
+            Tiếp tục mua sắm
+          </a>
+        </div>
+
+        <section
+          class="payment-result-order-details"
+          id="payment-result-order-details"
+          aria-labelledby="payment-result-details-heading"
+          hidden
+        >
+          <h2 id="payment-result-details-heading">Chi tiết đơn hàng</h2>
+          <p class="payment-result-recipient" id="payment-result-recipient"></p>
+          <div class="payment-result-items" id="payment-result-items"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="../../js/api.js"></script>
+    <script src="../../js/favorites.js"></script>
+    <script src="../../js/cart-store.js"></script>
+    <script src="../../js/header.js"></script>
+    <script src="../../js/footer.js"></script>
+    <script src="payment-result.js"></script>
+  </body>
+</html>

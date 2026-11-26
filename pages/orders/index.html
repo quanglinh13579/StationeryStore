@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đơn hàng của tôi | Nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/cart.css" />
+    <link rel="stylesheet" href="../../css/shared-layout.css" />
+    <link rel="stylesheet" href="../../css/order-tracking.css" />
+  </head>
+  <body class="order-tracking-body">
+    <div id="site-header"></div>
+
+    <main class="my-orders-page container">
+      <nav class="orders-breadcrumb" aria-label="Điều hướng">
+        <a href="../../index.html">⌂ <span>Tài khoản của bạn</span></a>
+        <span aria-hidden="true">›</span>
+        <strong>Đơn hàng của tôi</strong>
+      </nav>
+
+      <header class="orders-heading">
+        <div class="orders-title-row">
+          <span class="orders-title-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 4.5h8a2 2 0 0 1 2 2v14H6v-14a2 2 0 0 1 2-2Z" />
+              <path d="M9 4.5V3h6v1.5M9 10h6M9 14h6M9 18h4" />
+              <path d="M4 7v15h13" />
+            </svg>
+          </span>
+          <div>
+            <h1>Đơn hàng của tôi</h1>
+            <p>Theo dõi và quản lý đơn hàng của bạn một cách dễ dàng.</p>
+          </div>
+        </div>
+        <button class="orders-refresh-button" id="refresh-orders" type="button">
+          <span aria-hidden="true">↻</span>
+          Làm mới
+        </button>
+      </header>
+
+      <p class="orders-page-status" id="orders-page-status" aria-live="polite">
+        Đang tải danh sách đơn hàng...
+      </p>
+      <section
+        class="my-orders-list"
+        id="my-orders-list"
+        aria-label="Danh sách đơn hàng"
+      ></section>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="../../js/api.js"></script>
+    <script src="../../js/favorites.js"></script>
+    <script src="../../js/cart-store.js"></script>
+    <script src="../../js/header.js"></script>
+    <script src="../../js/footer.js"></script>
+    <script src="orders.js"></script>
+  </body>
+</html>

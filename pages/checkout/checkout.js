@@ -6,7 +6,6 @@ const checkoutLayout = document.querySelector("#checkout-layout");
 const checkoutForm = document.querySelector("#checkout-form");
 const checkoutSubmitButton = checkoutForm.querySelector(".place-order-button");
 const checkoutSubmitStatus = document.querySelector("#checkout-submit-status");
-const checkoutSuccess = document.querySelector("#checkout-success");
 const cartCount = document.querySelector("#cart-count");
 const cartStore = window.stationeryCart;
 
@@ -40,13 +39,16 @@ function createIdempotencyKey() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+function getPaymentResultUrl(orderId) {
+  const query = new URLSearchParams({ orderId: String(orderId) });
+  return `../payment-result/payment-result.html?${query}`;
+}
+
 function showCheckoutError(message, loginRequired = false) {
   checkoutStatus.replaceChildren(document.createTextNode(message));
   const link = document.createElement("a");
   link.href = loginRequired ? "../auth/login.html" : "../cart/cart.html";
-  link.textContent = loginRequired
-    ? " Đăng nhập"
-    : " Quay lại giỏ hàng";
+  link.textContent = loginRequired ? " Đăng nhập" : " Quay lại giỏ hàng";
   checkoutStatus.append(link);
   checkoutLayout.hidden = true;
   checkoutStatus.hidden = false;
@@ -82,93 +84,44 @@ function getTotals() {
     0,
   );
   const discount =
-    checkoutDraft.couponCode === "NETNHO10"
-      ? Math.round(subtotal * 0.1)
-      : 0;
-  const delivery =
-    subtotal - discount >= SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  return { subtotal, discount, delivery, total: subtotal - discount + delivery };
+    checkoutDraft.couponCode === "NETNHO10" ? Math.round(subtotal * 0.1) : 0;
+  const delivery = subtotal - discount >= SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+  return {
+    subtotal,
+    discount,
+    delivery,
+    total: subtotal - discount + delivery,
+  };
 }
 
 function renderSummary() {
   const totals = getTotals();
-  document.querySelector("#checkout-subtotal").textContent =
-    formatPrice(totals.subtotal);
+  document.querySelector("#checkout-subtotal").textContent = formatPrice(
+    totals.subtotal,
+  );
   document.querySelector("#checkout-discount").textContent =
     `-${formatPrice(totals.discount)}`;
   document.querySelector("#checkout-discount-row").hidden =
     totals.discount === 0;
   document.querySelector("#checkout-delivery").textContent =
     totals.delivery === 0 ? "Miễn phí" : formatPrice(totals.delivery);
-  document.querySelector("#checkout-total").textContent =
-    formatPrice(totals.total);
-}
-
-function showOrderSuccess(order, paymentMessage) {
-    checkoutStatus.hidden = true;
-    checkoutLayout.hidden = true;
-    checkoutSuccess.hidden = false;
-    document.querySelector("#checkout-success-message").textContent =
-      `Cảm ơn ${order.customer?.name || order.recipientName}! Đơn hàng sẽ được giao đến địa chỉ bạn đã cung cấp. ${paymentMessage}`;
-    document.querySelector("#checkout-order-number").textContent =
-      `Mã đơn hàng: ${order.orderNumber}`;
-    document.querySelector(".checkout-intro h1").textContent =
-      "Đặt hàng thành công";
-    document.querySelector(".checkout-intro p").textContent =
-      "Nét nhỏ sẽ sớm liên hệ xác nhận đơn hàng của bạn.";
-}
-
-async function showMomoPaymentResult(orderId) {
-    checkoutLayout.hidden = true;
-    checkoutStatus.textContent = "Đang kiểm tra kết quả thanh toán MoMo...";
-    checkoutStatus.hidden = false;
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      try {
-        const { order } = await window.stationeryApi.get(
-          `/orders/${encodeURIComponent(orderId)}`,
-        );
-        if (order.paymentStatus === "paid") {
-          await cartStore.refresh().catch((error) => {
-            console.error("Không thể tải lại giỏ hàng:", error);
-          });
-          showOrderSuccess(order, "Thanh toán MoMo đã được xác nhận.");
-          return;
-        }
-        if (["failed", "cancelled"].includes(order.paymentStatus)) {
-          await cartStore.refresh().catch((error) => {
-            console.error("Không thể tải lại giỏ hàng:", error);
-          });
-          checkoutStatus.textContent =
-            "Thanh toán MoMo chưa thành công. Sản phẩm đã được đưa lại vào giỏ hàng.";
-          return;
-        }
-      } catch (error) {
-        showCheckoutError(
-          error.status === 401
-            ? "Phiên đăng nhập đã hết hạn. Đăng nhập lại để xem trạng thái đơn."
-            : error.message || "Không thể kiểm tra trạng thái thanh toán.",
-          error.status === 401,
-        );
-        return;
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, 1200));
-    }
-    checkoutStatus.textContent =
-      "MoMo chưa xác nhận giao dịch. Trạng thái đơn sẽ được cập nhật khi nhận được xác nhận từ MoMo.";
+  document.querySelector("#checkout-total").textContent = formatPrice(
+    totals.total,
+  );
 }
 
 async function loadCheckout() {
+  const query = new URLSearchParams(window.location.search);
+  const momoOrderId = query.get("localOrderId");
+  if (query.get("paymentReturn") === "momo" && momoOrderId) {
+    window.location.replace(getPaymentResultUrl(momoOrderId));
+    return;
+  }
+
   if (!window.stationeryApi.isAuthenticated()) {
     showCheckoutError("Đăng nhập để tiếp tục thanh toán.", true);
     return;
   }
-
-    const query = new URLSearchParams(window.location.search);
-    const momoOrderId = query.get("localOrderId");
-    if (query.get("paymentReturn") === "momo" && momoOrderId) {
-      await showMomoPaymentResult(momoOrderId);
-      return;
-    }
 
   checkoutDraft = readCheckoutDraft();
   if (!checkoutDraft || !Array.isArray(checkoutDraft.itemKeys)) {
@@ -280,31 +233,42 @@ async function placeOrder(event) {
     const paymentMethod = checkoutForm.querySelector(
       'input[name="payment"]:checked',
     ).value;
-    const result = await window.stationeryApi.createOrder({
-      customer: {
-        name: document.querySelector("#customer-name").value.trim(),
-        phone: document
-          .querySelector("#customer-phone")
-          .value.replace(/[\s-]/g, ""),
-        address: document.querySelector("#customer-address").value.trim(),
+    const result = await window.stationeryApi.createOrder(
+      {
+        customer: {
+          name: document.querySelector("#customer-name").value.trim(),
+          phone: document
+            .querySelector("#customer-phone")
+            .value.replace(/[\s-]/g, ""),
+          address: document.querySelector("#customer-address").value.trim(),
+        },
+        note: document.querySelector("#customer-note").value.trim(),
+        items: currentItems.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          variant: item.variant || "",
+        })),
+        couponCode: checkoutDraft.couponCode || "",
+        paymentMethod,
       },
-      note: document.querySelector("#customer-note").value.trim(),
-      items: currentItems.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-        variant: item.variant || "",
-      })),
-      couponCode: checkoutDraft.couponCode || "",
-      paymentMethod,
-    }, checkoutDraft.idempotencyKey);
+      checkoutDraft.idempotencyKey,
+    );
 
     if (paymentMethod === "momo") {
       if (result.order.paymentStatus === "paid") {
         localStorage.removeItem(CHECKOUT_STORAGE_KEY);
-        showOrderSuccess(result.order, "Thanh toán MoMo đã được xác nhận.");
+        window.location.assign(getPaymentResultUrl(result.order.id));
         return;
       }
-      if (result.order.paymentStatus !== "pending" || !result.order.paymentUrl) {
+      if (["failed", "cancelled"].includes(result.order.paymentStatus)) {
+        localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+        window.location.assign(getPaymentResultUrl(result.order.id));
+        return;
+      }
+      if (
+        result.order.paymentStatus !== "pending" ||
+        !result.order.paymentUrl
+      ) {
         throw new Error("MoMo chưa thể tạo giao dịch. Vui lòng thử lại.");
       }
       localStorage.removeItem(CHECKOUT_STORAGE_KEY);
@@ -313,17 +277,7 @@ async function placeOrder(event) {
     }
 
     localStorage.removeItem(CHECKOUT_STORAGE_KEY);
-    try {
-      await cartStore.refresh();
-    } catch (error) {
-      console.error("Không thể tải lại giỏ hàng sau khi đặt đơn:", error);
-    }
-    const paymentMessage = {
-      cod: "Bạn thanh toán khi nhận hàng.",
-      bank_transfer:
-        "Nhân viên sẽ liên hệ xác nhận đơn và gửi thông tin chuyển khoản.",
-    }[result.order.paymentMethod];
-    showOrderSuccess(result.order, paymentMessage);
+    window.location.assign(getPaymentResultUrl(result.order.id));
   } catch (error) {
     setSubmitError(
       error.message || "Chưa thể đặt hàng. Vui lòng thử lại.",

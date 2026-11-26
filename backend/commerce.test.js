@@ -131,6 +131,106 @@ test("checkout yêu cầu khóa idempotency, từ chối ví điện tử và gi
   }
 });
 
+test("đặt hàng ghi mốc trạng thái ban đầu trong transaction", async () => {
+  const history = [];
+  let committed = false;
+  const db = {
+    async execute(sql) {
+      if (sql.startsWith("SELECT id FROM orders WHERE user_id = ?")) {
+        return [[], []];
+      }
+      throw new Error(`Truy vấn không được hỗ trợ trong test: ${sql}`);
+    },
+    async getConnection() {
+      return {
+        async beginTransaction() {},
+        async commit() {
+          committed = true;
+        },
+        async rollback() {},
+        release() {},
+        async execute(sql, values) {
+          if (sql.includes("SELECT ci.id AS cartItemId")) {
+            return [
+              [
+                {
+                  cartItemId: 4,
+                  cartQuantity: 1,
+                  productId: 9,
+                  slug: "test-notebook",
+                  name: "Sổ kiểm thử",
+                  image: "assets/test-notebook.png",
+                  price: "25000",
+                  stock: 5,
+                },
+              ],
+              [],
+            ];
+          }
+          if (sql.startsWith("INSERT INTO orders")) {
+            return [{ insertId: 31 }, []];
+          }
+          if (sql.includes("INSERT INTO order_status_history")) {
+            history.push(values);
+            return [{ affectedRows: 1 }, []];
+          }
+          if (sql.startsWith("UPDATE products SET stock = stock - ?")) {
+            return [{ affectedRows: 1 }, []];
+          }
+          if (sql.startsWith("INSERT INTO order_items")) {
+            return [{ insertId: 1 }, []];
+          }
+          if (sql.startsWith("DELETE FROM cart_items")) {
+            return [{ affectedRows: 1 }, []];
+          }
+          throw new Error(`Truy vấn không được hỗ trợ trong test: ${sql}`);
+        },
+      };
+    },
+  };
+  const server = createApp(db).listen(0);
+  await once(server, "listening");
+
+  try {
+    const token = createToken({
+      id: 7,
+      name: "Test User",
+      email: "test@example.test",
+      role: "user",
+    });
+    const response = await fetch(
+      `http://127.0.0.1:${server.address().port}/api/orders`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": "checkout-track-001",
+        },
+        body: JSON.stringify({
+          customer: {
+            name: "Test User",
+            phone: "0912345678",
+            address: "123 Duong ABC",
+          },
+          items: [{ productId: "test-notebook", quantity: 1, variant: "" }],
+          paymentMethod: "cod",
+        }),
+      },
+    );
+    const result = await response.json();
+
+    assert.equal(response.status, 201);
+    assert.equal(result.order.id, 31);
+    assert.equal(committed, true);
+    assert.deepEqual(history, [[31, 7]]);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});
+
 test("MoMo IPN chỉ xác nhận thanh toán khi chữ ký hợp lệ", async () => {
   const previousEnvironment = {
     partnerCode: process.env.MOMO_PARTNER_CODE,
@@ -316,5 +416,218 @@ test("MoMo tạo URL Sandbox với chữ ký và mã đơn riêng", async () => 
     assert.equal(redirectUrl.searchParams.get("localOrderId"), "2");
   } finally {
     global.fetch = originalFetch;
+  }
+});
+
+test("khách hàng chỉ xem đơn của mình, gồm sản phẩm và lịch sử trạng thái", async () => {
+  const order = {
+    id: 12,
+    orderNumber: "NN-TRACK-12",
+    status: "shipping",
+    note: "",
+    recipientName: "Test User",
+    phone: "0912345678",
+    address: "123 Duong ABC",
+    paymentMethod: "cod",
+    paymentStatus: "unpaid",
+    subtotal: "25000",
+    discount: "0",
+    delivery: "30000",
+    total: "55000",
+    createdAt: new Date("2026-02-01T10:00:00.000Z"),
+  };
+  const item = {
+    productId: "test-notebook",
+    name: "Sổ kiểm thử",
+    image: "assets/test-notebook.png",
+    price: "25000",
+    quantity: 1,
+    variant: "",
+  };
+  const statusHistory = [
+    { status: "pending", changedAt: new Date("2026-02-01T10:00:00.000Z") },
+    { status: "confirmed", changedAt: new Date("2026-02-01T11:00:00.000Z") },
+    { status: "preparing", changedAt: new Date("2026-02-01T12:00:00.000Z") },
+    { status: "shipping", changedAt: new Date("2026-02-01T13:00:00.000Z") },
+  ];
+  const db = {
+    async execute(sql, values) {
+      if (sql.includes("FROM orders WHERE user_id = ?")) {
+        return [values[0] === 7 ? [order] : [], []];
+      }
+      if (sql.includes("FROM order_items WHERE order_id IN")) {
+        return [[{ ...item, orderId: 12 }], []];
+      }
+      if (sql.includes("FROM orders WHERE id = ? AND user_id = ?")) {
+        return [values[1] === 7 ? [order] : [], []];
+      }
+      if (sql.includes("FROM order_items WHERE order_id = ?")) {
+        return [[item], []];
+      }
+      if (sql.includes("FROM order_status_history WHERE order_id = ?")) {
+        return [statusHistory, []];
+      }
+      throw new Error(`Truy vấn không được hỗ trợ trong test: ${sql}`);
+    },
+  };
+  const server = createApp(db).listen(0);
+  await once(server, "listening");
+
+  try {
+    const baseUrl = `http://127.0.0.1:${server.address().port}/api/orders`;
+    const ownerToken = createToken({
+      id: 7,
+      name: "Test User",
+      email: "owner@example.test",
+      role: "user",
+    });
+    const otherToken = createToken({
+      id: 8,
+      name: "Other User",
+      email: "other@example.test",
+      role: "user",
+    });
+    const ownerHeaders = { Authorization: `Bearer ${ownerToken}` };
+    const listResponse = await fetch(baseUrl, { headers: ownerHeaders });
+    const list = await listResponse.json();
+    const detailResponse = await fetch(`${baseUrl}/12`, {
+      headers: ownerHeaders,
+    });
+    const detail = await detailResponse.json();
+    const privateResponse = await fetch(`${baseUrl}/12`, {
+      headers: { Authorization: `Bearer ${otherToken}` },
+    });
+
+    assert.equal(listResponse.status, 200);
+    assert.equal(list.orders[0].items[0].name, "Sổ kiểm thử");
+    assert.equal(list.orders[0].items[0].image, "assets/test-notebook.png");
+    assert.equal(list.orders[0].items[0].quantity, 1);
+    assert.equal(detailResponse.status, 200);
+    assert.equal(detail.order.statusHistory.length, 4);
+    assert.equal(detail.order.statusHistory[2].status, "preparing");
+    assert.equal(detail.order.estimatedDeliveryAt, null);
+    assert.equal(privateResponse.status, 404);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});
+
+test("Admin chỉ chuyển đơn qua bước đang chuẩn bị sau khi xác nhận và lưu lịch sử", async () => {
+  let orderStatus = "confirmed";
+  const statusHistory = [
+    { status: "pending", changedAt: new Date("2026-02-01T10:00:00.000Z") },
+    { status: "confirmed", changedAt: new Date("2026-02-01T11:00:00.000Z") },
+  ];
+  const db = {
+    async execute(sql) {
+      throw new Error(`Truy vấn phải dùng transaction connection: ${sql}`);
+    },
+    async getConnection() {
+      return {
+        async beginTransaction() {},
+        async commit() {},
+        async rollback() {},
+        release() {},
+        async execute(sql, values) {
+          if (sql.includes("FROM orders WHERE id = ? FOR UPDATE")) {
+            return [
+              [
+                {
+                  id: 12,
+                  status: orderStatus,
+                  paymentMethod: "cod",
+                  paymentStatus: "unpaid",
+                },
+              ],
+              [],
+            ];
+          }
+          if (sql.startsWith("UPDATE orders SET status = ?")) {
+            orderStatus = values[0];
+            return [{ affectedRows: 1 }, []];
+          }
+          if (sql.includes("INSERT INTO order_status_history")) {
+            statusHistory.push({
+              status: values[1],
+              changedAt: new Date("2026-02-01T12:00:00.000Z"),
+            });
+            return [{ affectedRows: 1 }, []];
+          }
+          if (sql.startsWith("SELECT id, order_number AS orderNumber")) {
+            return [
+              [
+                {
+                  id: 12,
+                  orderNumber: "NN-TRACK-12",
+                  status: orderStatus,
+                  recipientName: "Test User",
+                  note: "",
+                  phone: "0912345678",
+                  address: "123 Duong ABC",
+                  paymentMethod: "cod",
+                  couponCode: null,
+                  paymentStatus: "unpaid",
+                  paymentUrl: null,
+                  momoTransactionId: null,
+                  momoResultCode: null,
+                  subtotal: "25000",
+                  discount: "0",
+                  delivery: "30000",
+                  total: "55000",
+                  createdAt: new Date("2026-02-01T10:00:00.000Z"),
+                },
+              ],
+              [],
+            ];
+          }
+          if (sql.includes("FROM order_items WHERE order_id = ?")) {
+            return [[], []];
+          }
+          if (sql.includes("FROM order_status_history WHERE order_id = ?")) {
+            return [statusHistory, []];
+          }
+          throw new Error(`Truy vấn không được hỗ trợ trong test: ${sql}`);
+        },
+      };
+    },
+  };
+  const server = createApp(db).listen(0);
+  await once(server, "listening");
+
+  try {
+    const token = createToken({
+      id: 1,
+      name: "Admin",
+      email: "admin@example.test",
+      role: "admin",
+    });
+    const url = `http://127.0.0.1:${server.address().port}/api/admin/orders/12/status`;
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+    const skippedStep = await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "shipping" }),
+    });
+    assert.equal(skippedStep.status, 409);
+    assert.equal(orderStatus, "confirmed");
+
+    const preparingResponse = await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "preparing" }),
+    });
+    const result = await preparingResponse.json();
+    assert.equal(preparingResponse.status, 200);
+    assert.equal(result.order.status, "preparing");
+    assert.equal(result.order.statusHistory.at(-1).status, "preparing");
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
   }
 });
