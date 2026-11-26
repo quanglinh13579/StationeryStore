@@ -21,8 +21,12 @@ async function submitAuthForm(form, endpoint, messageElement, payload) {
     localStorage.removeItem("stationery-auth-token");
     localStorage.removeItem("authUser");
     showMessage(messageElement, result.message, "success");
+    const destination =
+      endpoint === "login" && result.user.role === "admin"
+        ? "../admin/index.html"
+        : "../../index.html";
     window.setTimeout(() => {
-      window.location.href = "../../index.html";
+      window.location.href = destination;
     }, 800);
   } catch (error) {
     console.error("Xác thực tài khoản thất bại:", error);

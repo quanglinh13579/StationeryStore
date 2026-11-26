@@ -6,6 +6,7 @@ const {
 } = require("./catalog");
 const { createAdminOrdersRouter, createCustomerRouter } = require("./commerce");
 const { ApiError } = require("./errors");
+const { createMomoRouter } = require("./momo");
 
 function createApp(db) {
   const app = express();
@@ -30,7 +31,7 @@ function createApp(db) {
       );
       res.setHeader(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization",
+        "Content-Type, Authorization, Idempotency-Key",
       );
     }
     if (req.method === "OPTIONS") {
@@ -40,6 +41,7 @@ function createApp(db) {
   });
 
   app.use(express.json({ limit: "10kb" }));
+  app.use(express.urlencoded({ extended: false, limit: "10kb" }));
   app.get("/api/health", async (req, res, next) => {
     try {
       await db.execute("SELECT 1");
@@ -51,6 +53,7 @@ function createApp(db) {
 
   app.use("/api/auth", createAuthRouter(db));
   app.use("/api", createCatalogRouter(db));
+  app.use("/api/payments", createMomoRouter(db));
   app.use("/api", createCustomerRouter(db));
   app.use("/api/admin", createAdminCatalogRouter(db));
   app.use("/api/admin", createAdminOrdersRouter(db));

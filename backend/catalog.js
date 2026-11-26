@@ -463,6 +463,87 @@ function createAdminCatalogRouter(db) {
   const router = express.Router();
   router.use(requireAuth, requireAdmin);
 
+  router.get(
+    "/products",
+    asyncRoute(async (req, res) => {
+      const page = requireInteger(req.query.page || 1, "Trang", 1);
+      const limit = requireInteger(req.query.limit || 20, "Số dòng", 1, 100);
+      const search =
+        typeof req.query.search === "string" ? req.query.search.trim() : "";
+      const status =
+        typeof req.query.status === "string" ? req.query.status : "all";
+      if (search.length > 120) {
+        throw new ApiError(400, "Điều kiện tìm kiếm quá dài.");
+      }
+      if (!["all", "active", "inactive"].includes(status)) {
+        throw new ApiError(400, "Trạng thái sản phẩm không hợp lệ.");
+      }
+
+      const conditions = [];
+      const values = [];
+      if (status !== "all") {
+        conditions.push("p.is_active = ?");
+        values.push(status === "active" ? 1 : 0);
+      }
+      if (search) {
+        conditions.push("(p.name LIKE ? OR p.slug LIKE ?)");
+        values.push(`%${search}%`, `%${search}%`);
+      }
+      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+      const [countRows] = await db.execute(
+        `SELECT COUNT(*) AS total FROM products p ${where}`,
+        values,
+      );
+      const [rows] = await db.execute(
+        `SELECT p.id, p.slug, p.name, p.description, p.image_url,
+                p.price, p.original_price, p.stock, p.rating, p.review_count,
+                p.is_popular, p.is_latest, p.is_active,
+                GROUP_CONCAT(DISTINCT c.slug ORDER BY c.slug SEPARATOR ',') AS category_slugs
+         FROM products p
+         LEFT JOIN product_categories pc ON pc.product_id = p.id
+         LEFT JOIN categories c ON c.id = pc.category_id
+         ${where}
+         GROUP BY p.id
+         ORDER BY p.updated_at DESC, p.id DESC
+         LIMIT ? OFFSET ?`,
+        [...values, limit, (page - 1) * limit],
+      );
+      const products = rows.map((row) => ({
+        ...mapProduct(row),
+        isActive: Boolean(row.is_active),
+      }));
+      const total = Number(countRows[0].total);
+      return res.json({
+        products,
+        total,
+        page,
+        limit,
+        nextPage: (page - 1) * limit + rows.length < total ? page + 1 : null,
+      });
+    }),
+  );
+
+  router.get(
+    "/categories",
+    asyncRoute(async (req, res) => {
+      const [rows] = await db.execute(`
+        SELECT c.slug, c.name, c.description, c.is_active AS isActive,
+               COUNT(DISTINCT pc.product_id) AS productsCount
+        FROM categories c
+        LEFT JOIN product_categories pc ON pc.category_id = c.id
+        GROUP BY c.id
+        ORDER BY c.is_active DESC, c.name
+      `);
+      return res.json({
+        categories: rows.map((category) => ({
+          ...category,
+          isActive: Boolean(category.isActive),
+          productsCount: Number(category.productsCount),
+        })),
+      });
+    }),
+  );
+
   router.post(
     "/products",
     asyncRoute(async (req, res) => {

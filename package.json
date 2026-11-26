@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node --watch backend/server.js",
-    "test": "node --test backend/auth.test.js backend/commerce.test.js backend/reviews.test.js"
+    "test": "node --test backend/auth.test.js backend/admin.test.js backend/commerce.test.js backend/reviews.test.js"
   },
   "engines": {
     "node": ">=18"

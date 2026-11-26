@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quản trị | Nét nhỏ.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../css/admin.css" />
+  </head>
+  <body>
+    <p class="admin-status" id="admin-status" role="status" aria-live="polite">
+      Đang xác minh quyền Admin...
+    </p>
+
+    <div class="admin-app" id="admin-app" hidden>
+      <aside class="admin-sidebar">
+        <a class="admin-brand" href="../../index.html">nét nhỏ<span>.</span></a>
+        <p class="admin-sidebar-label">QUẢN TRỊ</p>
+        <nav class="admin-nav" aria-label="Điều hướng quản trị">
+          <button class="active" type="button" data-section="dashboard">
+            <span aria-hidden="true">▦</span> Dashboard
+          </button>
+          <button type="button" data-section="products">
+            <span aria-hidden="true">▣</span> Sản phẩm
+          </button>
+          <button type="button" data-section="categories">
+            <span aria-hidden="true">▤</span> Danh mục
+          </button>
+          <button type="button" data-section="orders">
+            <span aria-hidden="true">▧</span> Đơn hàng
+          </button>
+          <button type="button" data-section="customers">
+            <span aria-hidden="true">♙</span> Khách hàng
+          </button>
+        </nav>
+        <div class="admin-sidebar-footer">
+          <a class="admin-home-link" href="../../index.html">
+            ← Quay về trang chủ
+          </a>
+          <button id="admin-logout" type="button">Đăng xuất</button>
+        </div>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div>
+            <p class="admin-eyebrow">STATIONERY STORE</p>
+            <h1 id="section-title">Dashboard</h1>
+          </div>
+          <p class="admin-identity">
+            <span class="admin-avatar" aria-hidden="true">A</span>
+            <span id="admin-name">Admin</span>
+          </p>
+        </header>
+
+        <p
+          class="admin-notice"
+          id="admin-notice"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></p>
+
+        <section class="admin-section" id="section-dashboard">
+          <div class="section-heading">
+            <div>
+              <h2>Tổng quan</h2>
+              <p>Số liệu được tải trực tiếp từ cơ sở dữ liệu.</p>
+            </div>
+            <button class="button button-secondary" type="button" data-refresh="dashboard">
+              Làm mới
+            </button>
+          </div>
+          <div class="dashboard-cards">
+            <article class="metric-card">
+              <span class="metric-icon metric-icon-blue" aria-hidden="true">▣</span>
+              <div>
+                <p>Tổng sản phẩm</p>
+                <strong id="metric-products">—</strong>
+              </div>
+            </article>
+            <article class="metric-card">
+              <span class="metric-icon metric-icon-orange" aria-hidden="true">▧</span>
+              <div>
+                <p>Tổng đơn hàng</p>
+                <strong id="metric-orders">—</strong>
+              </div>
+            </article>
+            <article class="metric-card">
+              <span class="metric-icon metric-icon-green" aria-hidden="true">₫</span>
+              <div>
+                <p>Doanh thu hoàn thành</p>
+                <strong id="metric-revenue">—</strong>
+                <small>Tính từ đơn hàng đã hoàn thành</small>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="admin-section" id="section-products" hidden>
+          <div class="section-heading">
+            <div>
+              <h2>Quản lý sản phẩm</h2>
+              <p>Xem và cập nhật sản phẩm trên cửa hàng.</p>
+            </div>
+            <button class="button button-primary" id="add-product" type="button">
+              + Thêm sản phẩm
+            </button>
+          </div>
+          <div class="toolbar">
+            <label class="search-control">
+              <span class="visually-hidden">Tìm sản phẩm</span>
+              <input id="product-search" type="search" placeholder="Tìm tên hoặc mã sản phẩm" />
+            </label>
+            <select id="product-status" aria-label="Lọc trạng thái sản phẩm">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hiển thị</option>
+              <option value="inactive">Đã ẩn</option>
+            </select>
+            <button class="button button-secondary" id="search-products" type="button">
+              Tìm kiếm
+            </button>
+          </div>
+          <div class="table-wrap" id="products-table"></div>
+          <nav class="pagination" id="products-pagination" aria-label="Trang sản phẩm" hidden></nav>
+        </section>
+
+        <section class="admin-section" id="section-categories" hidden>
+          <div class="section-heading">
+            <div>
+              <h2>Quản lý danh mục</h2>
+              <p>Tạo, chỉnh sửa hoặc ẩn danh mục sản phẩm.</p>
+            </div>
+            <button class="button button-primary" id="add-category" type="button">
+              + Thêm danh mục
+            </button>
+          </div>
+          <div class="table-wrap" id="categories-table"></div>
+        </section>
+
+        <section class="admin-section" id="section-orders" hidden>
+          <div class="section-heading">
+            <div>
+              <h2>Quản lý đơn hàng</h2>
+              <p>Xác nhận đơn và cập nhật tiến độ giao hàng.</p>
+            </div>
+            <button class="button button-secondary" type="button" data-refresh="orders">
+              Làm mới
+            </button>
+          </div>
+          <div class="table-wrap" id="orders-table"></div>
+          <nav class="pagination" id="orders-pagination" aria-label="Trang đơn hàng" hidden></nav>
+        </section>
+
+        <section class="admin-section" id="section-customers" hidden>
+          <div class="section-heading">
+            <div>
+              <h2>Quản lý khách hàng</h2>
+              <p>Danh sách tài khoản User đã đăng ký.</p>
+            </div>
+            <button class="button button-secondary" type="button" data-refresh="customers">
+              Làm mới
+            </button>
+          </div>
+          <div class="toolbar">
+            <label class="search-control">
+              <span class="visually-hidden">Tìm khách hàng</span>
+              <input id="customer-search" type="search" placeholder="Tìm tên, email hoặc số điện thoại" />
+            </label>
+            <button class="button button-secondary" id="search-customers" type="button">
+              Tìm kiếm
+            </button>
+          </div>
+          <div class="table-wrap" id="customers-table"></div>
+          <nav class="pagination" id="customers-pagination" aria-label="Trang khách hàng" hidden></nav>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="product-modal" hidden>
+      <section
+        class="admin-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-modal-title"
+      >
+        <header class="modal-heading">
+          <h2 id="product-modal-title">Thêm sản phẩm</h2>
+          <button class="modal-close" type="button" data-close-modal aria-label="Đóng">
+            ×
+          </button>
+        </header>
+        <form id="product-form">
+          <div class="form-grid">
+            <label>Mã sản phẩm <input name="slug" required maxlength="80" /></label>
+            <label>Tên sản phẩm <input name="name" required maxlength="160" /></label>
+            <label>Giá bán (đ) <input name="price" type="number" min="1" step="1" required /></label>
+            <label>Giá gốc (đ) <input name="originalPrice" type="number" min="1" step="1" /></label>
+            <label>Tồn kho <input name="stock" type="number" min="0" step="1" required /></label>
+            <label>Đường dẫn ảnh <input name="image" required maxlength="2048" /></label>
+            <label class="form-full">Mô tả <textarea name="description" rows="3"></textarea></label>
+            <label class="form-full">
+              Danh mục
+              <select name="categories" id="product-categories" multiple required size="4"></select>
+              <small>Giữ Ctrl (Windows) để chọn nhiều danh mục.</small>
+            </label>
+            <label class="checkbox-label">
+              <input name="popular" type="checkbox" /> Sản phẩm phổ biến
+            </label>
+            <label class="checkbox-label">
+              <input name="latest" type="checkbox" /> Sản phẩm mới
+            </label>
+          </div>
+          <p class="form-message" id="product-form-message" role="status" aria-live="polite"></p>
+          <footer class="modal-actions">
+            <button class="button button-secondary" type="button" data-close-modal>
+              Hủy
+            </button>
+            <button class="button button-primary" type="submit">Lưu sản phẩm</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="category-modal" hidden>
+      <section
+        class="admin-modal admin-modal-small"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="category-modal-title"
+      >
+        <header class="modal-heading">
+          <h2 id="category-modal-title">Thêm danh mục</h2>
+          <button class="modal-close" type="button" data-close-modal aria-label="Đóng">
+            ×
+          </button>
+        </header>
+        <form id="category-form">
+          <label>Mã danh mục <input name="slug" required maxlength="80" /></label>
+          <label>Tên danh mục <input name="name" required maxlength="100" /></label>
+          <label>Mô tả <textarea name="description" rows="3"></textarea></label>
+          <p class="form-message" id="category-form-message" role="status" aria-live="polite"></p>
+          <footer class="modal-actions">
+            <button class="button button-secondary" type="button" data-close-modal>
+              Hủy
+            </button>
+            <button class="button button-primary" type="submit">Lưu danh mục</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+
+    <script src="../../js/api.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

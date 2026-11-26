@@ -79,6 +79,16 @@
                   required
                 />
               </label>
+              <label class="checkout-address">
+                <span>Ghi chú đơn hàng</span>
+                <textarea
+                  id="customer-note"
+                  name="note"
+                  maxlength="1000"
+                  rows="3"
+                  placeholder="Ghi chú thêm cho đơn hàng (không bắt buộc)"
+                ></textarea>
+              </label>
             </div>
           </section>
 
@@ -114,12 +124,12 @@
                 </span>
               </label>
               <label class="payment-method">
-                <input type="radio" name="payment" value="e_wallet" />
+                <input type="radio" name="payment" value="momo" />
                 <span class="payment-radio" aria-hidden="true"></span>
-                <span class="payment-method-icon" aria-hidden="true">◈</span>
+                <span class="payment-method-icon" aria-hidden="true">M</span>
                 <span class="payment-method-copy">
-                  <strong>Ví điện tử (MoMo / ZaloPay)</strong>
-                  <small>Nhân viên sẽ hướng dẫn sau khi xác nhận đơn</small>
+                  <strong>Ví MoMo</strong>
+                  <small>Chuyển đến MoMo để thanh toán trực tuyến</small>
                 </span>
               </label>
             </div>

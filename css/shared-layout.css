@@ -476,6 +476,10 @@ footer {
     gap: 12px;
   }
 
+  .header-actions #admin-action {
+    font-size: 8px;
+  }
+
   .header-actions #login-action span:last-child,
   .header-actions .auth-logout span:last-child {
     display: none;

@@ -17,6 +17,26 @@ dùng Express, MySQL và JWT cho xác thực, sản phẩm, danh mục, giỏ h�
 2. Chạy `database/seed.sql` để thêm danh mục, sản phẩm và đánh giá ban đầu vào
    MySQL. Đây là dữ liệu khởi tạo trong database, không phải Mock API.
 
+   Nếu database đã được tạo từ trước, chạy đúng một lần migration
+   `database/migrations/001_checkout_orders.sql` để thêm ghi chú, khóa chống gửi
+   đơn lặp và cập nhật trạng thái `completed`. Ví dụ dùng MySQL CLI:
+
+   ```powershell
+   mysql -u root -p stationery_store < database/migrations/001_checkout_orders.sql
+   ```
+
+   Migration giữ lại giá trị thanh toán `e_wallet` trong enum của database cũ
+   để không làm hỏng đơn hàng lịch sử.
+
+   Nếu database chưa có các cột MoMo, chạy migration một lần:
+
+   ```powershell
+   mysql -u root -p stationery_store < database/migrations/002_momo_payments.sql
+   ```
+
+   Nếu database đã được cập nhật các cột `payment_status` và `momo_*` từ lần
+   thử trước, bỏ qua migration này để tránh thêm cột trùng.
+
    Máy phát triển Windows đã được cài MySQL portable để kiểm thử. Nếu dùng bản
    này, mở một PowerShell riêng và chạy lệnh sau; giữ cửa sổ này mở trong lúc
    chạy API:
@@ -83,11 +103,15 @@ dùng Express, MySQL và JWT cho xác thực, sản phẩm, danh mục, giỏ h�
 | DELETE | `/api/favorites/:productId` | Xóa yêu thích; cần đăng nhập       |
 | GET/POST | `/api/orders`     | Xem đơn hàng hoặc đặt hàng; cần đăng nhập |
 | GET    | `/api/orders/:orderId` | Chi tiết đơn hàng của người dùng       |
-| POST/PUT/DELETE | `/api/admin/products[/:slug]` | Quản lý sản phẩm; cần Admin |
-| POST/PUT/DELETE | `/api/admin/categories[/:slug]` | Quản lý danh mục; cần Admin |
+| POST   | `/api/orders/:orderId/cancel` | Hủy đơn đang chờ xác nhận; cần đăng nhập |
+| POST   | `/api/payments/momo/ipn` | MoMo gửi kết quả; Backend xác thực chữ ký |
+| GET/POST/PUT/DELETE | `/api/admin/products[/:slug]` | Xem và quản lý sản phẩm; cần Admin |
+| GET/POST/PUT/DELETE | `/api/admin/categories[/:slug]` | Xem và quản lý danh mục; cần Admin |
+| GET | `/api/admin/dashboard` | Tổng sản phẩm, đơn hàng, doanh thu; cần Admin |
+| GET | `/api/admin/customers` | Danh sách tài khoản User; cần Admin |
 | GET    | `/api/admin/orders`  | Danh sách đơn hàng; cần Admin            |
 | GET    | `/api/admin/orders/:orderId` | Chi tiết đơn hàng; cần Admin      |
-| PATCH  | `/api/admin/orders/:orderId/status` | Cập nhật trạng thái; cần Admin |
+| PATCH  | `/api/admin/orders/:orderId/status` | Chuyển trạng thái hợp lệ; cần Admin |
 | GET    | `/api/admin/check`   | Kiểm tra quyền Admin                     |
 | GET    | `/api/health`        | Kiểm tra API và kết nối MySQL            |
 
@@ -96,7 +120,82 @@ chuẩn hóa email, băm mật khẩu bằng bcryptjs và luôn gán role `user`
 `role` gửi từ trình duyệt không được sử dụng. Đăng nhập nhận `email` và
 `password`. API sản phẩm và danh mục công khai; giỏ hàng, yêu thích và đơn hàng
 gắn với người dùng trong JWT. Backend tính lại tiền đơn hàng và kiểm tra tồn kho
-trước khi ghi nhận đặt hàng.
+trước khi ghi nhận đặt hàng. Thanh toán hỗ trợ `cod`, `bank_transfer` và `momo`.
+Trạng thái đơn gồm `pending`, `confirmed`,
+`shipping`, `completed` và `cancelled`.
+
+### Checkout và đơn hàng
+
+1. `GET /api/auth/me` lấy thông tin tài khoản từ JWT; `GET /api/cart` trả về
+   giỏ hàng, đơn giá, số lượng, thành tiền từng dòng và tạm tính.
+2. `POST /api/orders` cần Bearer token và header `Idempotency-Key` (8-100 ký
+   tự). Backend xác minh các sản phẩm/số lượng khớp giỏ hàng, kiểm tra tồn kho,
+   tự tính giá/giảm giá/phí giao hàng/tổng tiền, tạo đơn và chi tiết trong một
+   transaction, trừ kho và xóa các món đã đặt khỏi giỏ.
+
+Request mẫu:
+
+```http
+POST /api/orders
+Authorization: Bearer <JWT>
+Idempotency-Key: 78106be2-0957-41e9-9ab1-54c901d97483
+Content-Type: application/json
+```
+
+```json
+{
+  "customer": {
+    "name": "Nguyen Van A",
+    "phone": "0912345678",
+    "address": "123 Duong ABC, Quan 1"
+  },
+  "note": "Gọi trước khi giao",
+  "items": [
+    { "productId": "but-bi-muc-xanh", "quantity": 2, "variant": "" }
+  ],
+  "couponCode": "",
+  "paymentMethod": "cod"
+}
+```
+
+API trả `201` khi tạo đơn mới và `200` khi phát lại kết quả của khóa idempotency
+đã xử lý; gửi lại cùng khóa sẽ không trừ kho hoặc tạo đơn thêm lần nữa. Khóa
+được lưu theo từng người dùng. Không gửi giá sản phẩm hoặc tổng tiền từ client.
+
+`GET /api/orders` liệt kê đơn của tài khoản; `GET /api/orders/:orderId` xem chi
+tiết và chỉ cho chủ đơn truy cập. `POST /api/orders/:orderId/cancel` chỉ hủy
+đơn chưa được thanh toán, hoàn kho trong transaction. Admin chỉ được chuyển
+trạng thái theo luồng `pending -> confirmed -> shipping -> completed`; đơn
+`pending` hoặc `confirmed` có thể được Admin hủy nếu chưa thanh toán. Đơn đã
+hủy/hoàn thành không thể mở lại.
+
+Checkout hiện giữ giao diện có sẵn, bổ sung ghi chú tùy chọn và gửi khóa
+idempotency ổn định trong suốt một lần checkout. Chuyển khoản chỉ là lựa chọn
+phương thức; nhân viên xác nhận và cung cấp thông tin chuyển khoản. Với MoMo,
+`POST /api/orders` nhận `paymentMethod: "momo"` và trả `order.paymentUrl`.
+Frontend chuyển khách đến URL đó. IPN công khai tại
+`POST /api/payments/momo/ipn` xác thực chữ ký HMAC-SHA256 và đối chiếu mã đơn,
+mã yêu cầu, số tiền trước khi cập nhật trạng thái thanh toán. Trang quay về chỉ
+hiển thị đã thanh toán khi `GET /api/orders/:orderId` trả `paymentStatus: "paid"`;
+tham số trên URL chuyển hướng không được dùng để xác nhận thanh toán.
+
+### Cấu hình MoMo Sandbox
+
+1. Tạo ứng dụng Sandbox trong cổng dành cho nhà phát triển MoMo và lấy Partner
+   Code, Access Key, Secret Key.
+2. Điền các giá trị vào `.env` (không đưa file này lên Git). Giữ
+   `MOMO_CREATE_URL` trỏ đến Sandbox. `MOMO_REDIRECT_URL` là trang checkout
+   đang chạy trên Live Server.
+3. Cấu hình `MOMO_IPN_URL` thành địa chỉ HTTPS công khai có thể truy cập được
+   từ MoMo, ví dụ URL API đã triển khai cùng `/api/payments/momo/ipn`. Không
+   dùng `localhost` cho IPN; Sandbox không thể gọi địa chỉ trên máy cá nhân.
+4. Khởi động lại API, chọn **Ví MoMo** ngay dưới **Chuyển khoản ngân hàng**.
+   Khi chưa có cấu hình, API từ chối tạo đơn MoMo và không trừ hàng trong kho.
+
+Tài liệu và mẫu tích hợp chính thức: [MoMo Payment API](https://developers.momo.vn/)
+và [repository mẫu của MoMo](https://github.com/momo-wallet/payment). Không
+thể xác nhận một giao dịch Sandbox thực tế nếu chưa cấu hình thông tin Sandbox
+và IPN HTTPS công khai.
 
 Sau khi đăng ký/đăng nhập, frontend lưu JWT trong `sessionStorage` dưới khóa
 `stationery-auth-token`. Gửi token qua header
@@ -113,6 +212,13 @@ UPDATE users SET role = 'admin' WHERE email = 'admin@example.com';
 
 Đăng nhập lại để nhận JWT có role mới. Middleware kiểm tra role nằm ở Backend;
 không dùng thông tin role trong giao diện để bảo vệ API.
+
+Sau khi đăng nhập, tài khoản có role `admin` được chuyển tới
+`pages/admin/index.html`; trang này gọi `/api/admin/check` trước khi hiển thị.
+Trang Admin có Dashboard, quản lý sản phẩm/danh mục/đơn hàng và danh sách khách
+hàng. Doanh thu trên Dashboard chỉ cộng các đơn có trạng thái `completed`.
+Nút **Quay về trang chủ** và mục **Quản lý Admin** giữ nguyên phiên đăng nhập;
+API quản trị vẫn được bảo vệ riêng bằng middleware `requireAdmin`.
 
 ## Phát triển và kiểm thử
 

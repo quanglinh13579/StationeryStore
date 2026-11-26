@@ -6,6 +6,7 @@ process.env.JWT_SECRET =
   "test-only-secret-that-is-at-least-thirty-two-characters";
 
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { createApp } = require("./app");
 const { requireAdmin } = require("./auth");
 
@@ -140,6 +141,30 @@ test("đăng nhập trả JWT, /me kiểm tra token và từ chối mật khẩu
     assert.equal(profileResult.user.role, "user");
     assert.equal(wrongPassword.status, 401);
     assert.equal(unauthorizedProfile.status, 401);
+  });
+});
+
+test("đăng nhập Admin trả về user và JWT có role admin", async () => {
+  await withApi(async (baseUrl, db) => {
+    db.users.push({
+      id: 10,
+      name: "Admin StationeryStore",
+      email: "admin@example.com",
+      phone: "",
+      password_hash: await bcrypt.hash("AdminSecret123", 10),
+      role: "admin",
+    });
+
+    const response = await postJson(`${baseUrl}/api/auth/login`, {
+      email: "ADMIN@example.com",
+      password: "AdminSecret123",
+    });
+    const result = await response.json();
+    const payload = jwt.verify(result.token, process.env.JWT_SECRET);
+
+    assert.equal(response.status, 200);
+    assert.equal(result.user.role, "admin");
+    assert.equal(payload.role, "admin");
   });
 });
 

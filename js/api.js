@@ -127,9 +127,10 @@
         method: "DELETE",
       });
     },
-    createOrder(order) {
+    createOrder(order, idempotencyKey) {
       return request("/orders", {
         method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey },
         body: JSON.stringify(order),
       });
     },

@@ -62,6 +62,16 @@
             <span class="action-icon" aria-hidden="true">↪</span>
             <span>Đăng xuất</span>
           </button>
+          <a
+            id="admin-action"
+            href="${base}/pages/admin/index.html"
+            aria-label="Quản lý Admin"
+            title="Quản lý Admin"
+            hidden
+          >
+            <span class="action-icon" aria-hidden="true">⚙</span>
+            <span>Quản lý Admin</span>
+          </a>
           <a id="favorites-toggle" href="${favoritesLink}" aria-label="Chỉ xem sản phẩm yêu thích" aria-pressed="false">
             <span class="action-icon">♡</span>
             <span>Yêu thích</span>
@@ -88,10 +98,21 @@
 
   const loginAction = placeholder.querySelector("#login-action");
   const logoutAction = placeholder.querySelector("#logout-action");
+  const adminAction = placeholder.querySelector("#admin-action");
   function updateAuthActions() {
     const authenticated = window.stationeryApi.isAuthenticated();
     loginAction.hidden = authenticated;
     logoutAction.hidden = !authenticated;
+    let isAdmin = false;
+    if (authenticated) {
+      try {
+        const user = JSON.parse(sessionStorage.getItem("authUser") || "null");
+        isAdmin = Boolean(user && user.role === "admin");
+      } catch {
+        isAdmin = false;
+      }
+    }
+    adminAction.hidden = !isAdmin;
   }
   updateAuthActions();
   logoutAction.addEventListener("click", () => {
