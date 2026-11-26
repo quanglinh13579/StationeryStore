@@ -188,6 +188,21 @@ form > p {
     font-size: 13px;
 }
 
+.auth-message {
+    min-height: 18px;
+    margin: 8px 0 0;
+    color: #b42318;
+    font-size: 12px;
+}
+
+.auth-message:empty {
+    display: none;
+}
+
+.auth-message[data-state="success"] {
+    color: #18794e;
+}
+
 form > label {
     display: block;
     margin: 13px 0;
