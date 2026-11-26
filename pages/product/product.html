@@ -223,6 +223,41 @@
               <h2>Nhận xét từ khách hàng</h2>
               <span id="review-list-count"></span>
             </div>
+            <div class="review-form-panel">
+              <p class="review-login-prompt" data-review-login-prompt hidden>
+                <span data-review-login-status
+                  >Đăng nhập để viết nhận xét.</span
+                >
+                <a href="../auth/login.html">Đăng nhập</a>
+              </p>
+              <form class="review-form" data-review-form hidden>
+                <label>
+                  Đánh giá
+                  <select name="rating" required>
+                    <option value="">Chọn số sao</option>
+                    <option value="5">5 sao - Rất hài lòng</option>
+                    <option value="4">4 sao - Hài lòng</option>
+                    <option value="3">3 sao - Bình thường</option>
+                    <option value="2">2 sao - Chưa hài lòng</option>
+                    <option value="1">1 sao - Không hài lòng</option>
+                  </select>
+                </label>
+                <label class="review-form-comment">
+                  Bình luận
+                  <textarea
+                    name="comment"
+                    minlength="5"
+                    maxlength="1000"
+                    placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này..."
+                    required
+                  ></textarea>
+                </label>
+                <div class="review-form-actions">
+                  <p data-review-status role="status" aria-live="polite"></p>
+                  <button type="submit">Gửi nhận xét</button>
+                </div>
+              </form>
+            </div>
             <p
               class="product-reviews-status"
               id="product-reviews-status"
@@ -251,6 +286,8 @@
 
     <div id="site-footer"></div>
     <script src="../../js/api.js"></script>
+    <script src="../../js/auth-prompt.js"></script>
+    <script src="../../js/review-form.js"></script>
     <script src="../../js/favorites.js"></script>
     <script src="../../js/cart-store.js"></script>
     <script src="../../js/header.js"></script>

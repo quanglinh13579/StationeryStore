@@ -74,7 +74,7 @@ dùng Express, MySQL và JWT cho xác thực, sản phẩm, danh mục, giỏ h�
 | GET    | `/api/categories`    | Danh sách danh mục                       |
 | GET    | `/api/categories/:slug` | Chi tiết danh mục                     |
 | GET    | `/api/categories/:slug/products` | Sản phẩm theo danh mục       |
-| GET    | `/api/reviews`       | Đánh giá sản phẩm                        |
+| GET/POST | `/api/reviews`     | Xem đánh giá hoặc gửi nhận xét; POST cần đăng nhập |
 | GET    | `/api/cart`          | Xem giỏ hàng; cần đăng nhập              |
 | POST   | `/api/cart/items`    | Thêm/cộng sản phẩm vào giỏ; cần đăng nhập |
 | PATCH/DELETE | `/api/cart/items/:productId` | Sửa hoặc xóa món hàng; cần đăng nhập |
@@ -98,9 +98,11 @@ chuẩn hóa email, băm mật khẩu bằng bcryptjs và luôn gán role `user`
 gắn với người dùng trong JWT. Backend tính lại tiền đơn hàng và kiểm tra tồn kho
 trước khi ghi nhận đặt hàng.
 
-Sau khi đăng ký/đăng nhập, frontend lưu JWT trong `localStorage` dưới khóa
+Sau khi đăng ký/đăng nhập, frontend lưu JWT trong `sessionStorage` dưới khóa
 `stationery-auth-token`. Gửi token qua header
-`Authorization: Bearer <token>` khi gọi API cần đăng nhập.
+`Authorization: Bearer <token>` khi gọi API cần đăng nhập. Nút `Đăng xuất` trên
+header xóa phiên đăng nhập hiện tại; đóng tab sẽ kết thúc phiên theo cơ chế
+`sessionStorage` của trình duyệt.
 
 Tài khoản Admin phải được cấp thủ công bởi người quản lý database sau khi tài
 khoản đã đăng ký:

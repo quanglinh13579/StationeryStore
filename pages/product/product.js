@@ -23,6 +23,13 @@ function formatRating(rating) {
   return `${"★".repeat(roundedRating)}${"☆".repeat(5 - roundedRating)}`;
 }
 
+function showProductActionError(error, authMessage) {
+  const status = document.querySelector("#detail-cart-status");
+  const message = error.status === 401 ? authMessage : error.message;
+  if (error.status === 401) window.stationeryAuthPrompt.show(message);
+  status.textContent = message;
+}
+
 function getCategoryName(product) {
   const names = {
     notebook: "Sổ & vở",
@@ -132,7 +139,10 @@ function renderSpecifications(product) {
       "Quy cách",
       product.category.includes("notebook") ? "Khổ A5" : "Tiêu chuẩn",
     ],
-    ["Tình trạng", product.stock > 0 ? `Còn hàng (${product.stock})` : "Hết hàng"],
+    [
+      "Tình trạng",
+      product.stock > 0 ? `Còn hàng (${product.stock})` : "Hết hàng",
+    ],
   ];
   const list = document.querySelector("#specification-list");
 
@@ -182,6 +192,8 @@ function renderProduct(product) {
   document.querySelector("#tab-review-count").textContent = String(
     product.reviewCount,
   );
+  const reviewForm = document.querySelector("[data-review-form]");
+  if (reviewForm) reviewForm.dataset.reviewProductId = product.id;
   const detailFavorite = document.querySelector("#detail-favorite");
   detailFavorite.dataset.favoriteProductId = product.id;
   detailFavorite.dataset.favoriteProductName = product.name;
@@ -228,6 +240,7 @@ function renderProduct(product) {
 
 function renderReviewBars(reviewCount) {
   const bars = document.querySelector("#review-bars");
+  bars.replaceChildren();
   [5, 4, 3, 2, 1].forEach((rating, index) => {
     const row = document.createElement("div");
     row.className = "review-bar-row";
@@ -247,6 +260,30 @@ function renderReviewBars(reviewCount) {
   });
 }
 
+function updateReviewSummary(product) {
+  document.querySelector("#detail-stars").textContent = formatRating(
+    product.rating,
+  );
+  document.querySelector("#detail-rating").textContent =
+    product.rating.toFixed(1);
+  document.querySelector("#detail-review-count").textContent =
+    `${product.reviewCount} đánh giá`;
+  document.querySelector("#review-average").textContent = product.rating
+    .toFixed(1)
+    .replace(".", ",");
+  document.querySelector("#review-average-stars").textContent = formatRating(
+    product.rating,
+  );
+  document.querySelector("#review-summary-count").textContent =
+    `${product.reviewCount} đánh giá`;
+  document.querySelector("#review-list-count").textContent =
+    `${product.reviewCount} đánh giá`;
+  document.querySelector("#tab-review-count").textContent = String(
+    product.reviewCount,
+  );
+  renderReviewBars(product.reviewCount);
+}
+
 async function addProductToCart(buyNow = false) {
   if (!currentProduct) return;
   const selectedQuantity = Math.max(
@@ -257,16 +294,12 @@ async function addProductToCart(buyNow = false) {
   const status = document.querySelector("#detail-cart-status");
   try {
     await addToCart(currentProduct, selectedQuantity, variant);
-    status.textContent =
-      `Đã thêm ${selectedQuantity} sản phẩm vào giỏ hàng.`;
+    status.textContent = `Đã thêm ${selectedQuantity} sản phẩm vào giỏ hàng.`;
     if (buyNow) {
       window.location.href = "../../pages/cart/cart.html";
     }
   } catch (error) {
-    status.textContent =
-      error.status === 401
-        ? "Đăng nhập để thêm sản phẩm vào giỏ hàng."
-        : error.message;
+    showProductActionError(error, "Đăng nhập để thêm sản phẩm vào giỏ hàng.");
   }
 }
 
@@ -294,10 +327,7 @@ function createRelatedCard(product) {
     try {
       await favoriteStore.toggle(product.id);
     } catch (error) {
-      document.querySelector("#detail-cart-status").textContent =
-        error.status === 401
-          ? "Đăng nhập để lưu sản phẩm yêu thích."
-          : error.message;
+      showProductActionError(error, "Đăng nhập để lưu sản phẩm yêu thích.");
     }
   });
   imageContainer.append(imageLink, favoriteButton);
@@ -340,10 +370,7 @@ function createRelatedCard(product) {
       document.querySelector("#detail-cart-status").textContent =
         `Đã thêm “${product.name}” vào giỏ hàng.`;
     } catch (error) {
-      document.querySelector("#detail-cart-status").textContent =
-        error.status === 401
-          ? "Đăng nhập để thêm sản phẩm vào giỏ hàng."
-          : error.message;
+      showProductActionError(error, "Đăng nhập để thêm sản phẩm vào giỏ hàng.");
     }
   });
   price.append(addButton);
@@ -430,10 +457,7 @@ function setupControls() {
       try {
         await favoriteStore.toggle(currentProduct.id);
       } catch (error) {
-        document.querySelector("#detail-cart-status").textContent =
-          error.status === 401
-            ? "Đăng nhập để lưu sản phẩm yêu thích."
-            : error.message;
+        showProductActionError(error, "Đăng nhập để lưu sản phẩm yêu thích.");
       }
     });
   document
@@ -517,6 +541,26 @@ async function loadProduct() {
 
 favoriteStore.subscribe(updateFavoriteButtons);
 cartStore.subscribe(updateCartCount);
+window.addEventListener("stationery:review-created", async (event) => {
+  if (!currentProduct || event.detail.review.productId !== currentProduct.id) {
+    return;
+  }
+
+  currentProduct.rating = Number(event.detail.product.rating);
+  currentProduct.reviewCount = Number(event.detail.product.reviewCount);
+  updateReviewSummary(currentProduct);
+  try {
+    const result = await window.stationeryApi.getReviews({
+      productId: currentProduct.id,
+      limit: 100,
+    });
+    renderReviews(result.reviews);
+  } catch (error) {
+    console.error("Không thể tải lại đánh giá sản phẩm:", error);
+    document.querySelector("#product-reviews-status").textContent =
+      "Đã gửi nhận xét nhưng không tải lại được danh sách.";
+  }
+});
 cartStore.refresh().catch((error) => {
   console.error("Không thể tải giỏ hàng:", error);
 });

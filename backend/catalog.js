@@ -68,7 +68,9 @@ function addProductFilters(filters) {
   if (filters.popular) conditions.push("p.is_popular = 1");
   if (filters.latest) conditions.push("p.is_latest = 1");
   if (filters.onSale) {
-    conditions.push("p.original_price IS NOT NULL AND p.original_price > p.price");
+    conditions.push(
+      "p.original_price IS NOT NULL AND p.original_price > p.price",
+    );
   }
 
   return { sql: conditions.join(" AND "), values };
@@ -230,7 +232,8 @@ function createCatalogRouter(db) {
          LIMIT 1`,
         [req.params.slug],
       );
-      if (rows.length === 0) throw new ApiError(404, "Không tìm thấy danh mục.");
+      if (rows.length === 0)
+        throw new ApiError(404, "Không tìm thấy danh mục.");
       return res.json({
         category: {
           ...rows[0],
@@ -278,6 +281,79 @@ function createCatalogRouter(db) {
         limit,
         nextPage: offset + rows.length < total ? page + 1 : null,
       });
+    }),
+  );
+
+  router.post(
+    "/reviews",
+    requireAuth,
+    asyncRoute(async (req, res) => {
+      const body = req.body || {};
+      const productId =
+        typeof body.productId === "string" ? body.productId.trim() : "";
+      const rating = requireInteger(body.rating, "Số sao", 1, 5);
+      const comment =
+        typeof body.comment === "string" ? body.comment.trim() : "";
+      if (!productId || productId.length > 80) {
+        throw new ApiError(400, "Sản phẩm không hợp lệ.");
+      }
+      if (comment.length < 5 || comment.length > 1000) {
+        throw new ApiError(400, "Nhận xét phải có từ 5 đến 1000 ký tự.");
+      }
+
+      const connection = await db.getConnection();
+      try {
+        await connection.beginTransaction();
+        const [products] = await connection.execute(
+          "SELECT id, slug, name FROM products WHERE slug = ? AND is_active = 1 LIMIT 1 FOR UPDATE",
+          [productId],
+        );
+        if (products.length === 0) {
+          throw new ApiError(404, "Không tìm thấy sản phẩm.");
+        }
+
+        const product = products[0];
+        const [insertResult] = await connection.execute(
+          "INSERT INTO reviews (product_id, reviewer_name, rating, comment) VALUES (?, ?, ?, ?)",
+          [product.id, req.user.name, rating, comment],
+        );
+        await connection.execute(
+          `UPDATE products
+           SET rating = ROUND(((rating * review_count) + ?) / (review_count + 1), 1),
+               review_count = review_count + 1
+           WHERE id = ?`,
+          [rating, product.id],
+        );
+        const [reviewRows] = await connection.execute(
+          `SELECT reviewer_name AS name, p.slug AS productId, p.name AS product,
+                  r.rating, r.comment, r.created_at AS createdAt
+           FROM reviews r JOIN products p ON p.id = r.product_id
+           WHERE r.id = ?`,
+          [insertResult.insertId],
+        );
+        const [updatedProducts] = await connection.execute(
+          "SELECT rating, review_count AS reviewCount FROM products WHERE id = ?",
+          [product.id],
+        );
+        await connection.commit();
+        return res.status(201).json({
+          message: "Đã gửi nhận xét.",
+          review: {
+            ...reviewRows[0],
+            rating: Number(reviewRows[0].rating),
+          },
+          product: {
+            id: product.slug,
+            rating: Number(updatedProducts[0].rating),
+            reviewCount: Number(updatedProducts[0].reviewCount),
+          },
+        });
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
     }),
   );
 
@@ -503,10 +579,9 @@ function createAdminCatalogRouter(db) {
           "DELETE FROM cart_items WHERE product_id = ?",
           [products[0].id],
         );
-        await connection.execute(
-          "DELETE FROM favorites WHERE product_id = ?",
-          [products[0].id],
-        );
+        await connection.execute("DELETE FROM favorites WHERE product_id = ?", [
+          products[0].id,
+        ]);
         await connection.execute(
           "UPDATE products SET is_active = 0 WHERE id = ?",
           [products[0].id],

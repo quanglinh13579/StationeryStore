@@ -16,8 +16,10 @@ async function submitAuthForm(form, endpoint, messageElement, payload) {
       payload,
     );
 
-    localStorage.setItem("stationery-auth-token", result.token);
-    localStorage.setItem("authUser", JSON.stringify(result.user));
+    sessionStorage.setItem("stationery-auth-token", result.token);
+    sessionStorage.setItem("authUser", JSON.stringify(result.user));
+    localStorage.removeItem("stationery-auth-token");
+    localStorage.removeItem("authUser");
     showMessage(messageElement, result.message, "success");
     window.setTimeout(() => {
       window.location.href = "../../index.html";

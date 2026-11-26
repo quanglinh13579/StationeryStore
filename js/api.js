@@ -1,5 +1,7 @@
 (() => {
   const API_BASE_URL = "http://localhost:3000/api";
+  localStorage.removeItem("stationery-auth-token");
+  localStorage.removeItem("authUser");
 
   class ApiError extends Error {
     constructor(status, message) {
@@ -11,7 +13,7 @@
 
   async function request(path, options = {}) {
     const headers = { Accept: "application/json", ...options.headers };
-    const token = localStorage.getItem("stationery-auth-token");
+    const token = sessionStorage.getItem("stationery-auth-token");
     if (token) headers.Authorization = `Bearer ${token}`;
     if (options.body !== undefined) {
       headers["Content-Type"] = "application/json";
@@ -46,7 +48,13 @@
   window.stationeryApi = Object.freeze({
     ApiError,
     isAuthenticated() {
-      return Boolean(localStorage.getItem("stationery-auth-token"));
+      return Boolean(sessionStorage.getItem("stationery-auth-token"));
+    },
+    logout() {
+      sessionStorage.removeItem("stationery-auth-token");
+      sessionStorage.removeItem("authUser");
+      localStorage.removeItem("stationery-auth-token");
+      localStorage.removeItem("authUser");
     },
     get(path) {
       return request(path);
@@ -74,6 +82,12 @@
     },
     getReviews(params = {}) {
       return request(withQuery("/reviews", params));
+    },
+    createReview(review) {
+      return request("/reviews", {
+        method: "POST",
+        body: JSON.stringify(review),
+      });
     },
     getCart() {
       return request("/cart");

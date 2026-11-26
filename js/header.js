@@ -48,10 +48,20 @@
           </div>
         </form>
         <div class="header-actions">
-          <a href="${base}/pages/auth/login.html">
+          <a id="login-action" href="${base}/pages/auth/login.html">
             <img src="${base}/assets/icons/login-icon.svg" alt="Login" width="20" height="20" class="action-icon" />
             <span>Đăng nhập</span>
           </a>
+          <button
+            class="auth-logout"
+            id="logout-action"
+            type="button"
+            aria-label="Đăng xuất"
+            hidden
+          >
+            <span class="action-icon" aria-hidden="true">↪</span>
+            <span>Đăng xuất</span>
+          </button>
           <a id="favorites-toggle" href="${favoritesLink}" aria-label="Chỉ xem sản phẩm yêu thích" aria-pressed="false">
             <span class="action-icon">♡</span>
             <span>Yêu thích</span>
@@ -75,6 +85,19 @@
       </nav>
     </header>
   `;
+
+  const loginAction = placeholder.querySelector("#login-action");
+  const logoutAction = placeholder.querySelector("#logout-action");
+  function updateAuthActions() {
+    const authenticated = window.stationeryApi.isAuthenticated();
+    loginAction.hidden = authenticated;
+    logoutAction.hidden = !authenticated;
+  }
+  updateAuthActions();
+  logoutAction.addEventListener("click", () => {
+    window.stationeryApi.logout();
+    window.location.reload();
+  });
 
   const favoriteCount = placeholder.querySelector("#favorite-count");
   const updateFavoriteCount = () => {

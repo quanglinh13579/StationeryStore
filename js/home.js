@@ -4,7 +4,8 @@ const productsRetry = document.querySelector("#products-retry");
 const productPrev = document.querySelector("#product-prev");
 const productNext = document.querySelector("#product-next");
 const searchInput = document.querySelector("#product-search input");
-searchInput.value = new URLSearchParams(window.location.search).get("search") || "";
+searchInput.value =
+  new URLSearchParams(window.location.search).get("search") || "";
 const searchStatus = document.querySelector("#search-status");
 const favoriteCount = document.querySelector("#favorite-count");
 const favoritesToggle = document.querySelector("#favorites-toggle");
@@ -26,6 +27,12 @@ let reviewTotal = 0;
 let reviewOffset = 0;
 let reviewsExpanded = false;
 let reviewsInitialized = false;
+
+function showProductActionError(error, authMessage) {
+  const message = error.status === 401 ? authMessage : error.message;
+  if (error.status === 401) window.stationeryAuthPrompt.show(message);
+  searchStatus.textContent = message;
+}
 
 function createProductCard(product) {
   const card = document.createElement("article");
@@ -52,10 +59,7 @@ function createProductCard(product) {
     try {
       await favoriteStore.toggle(product.id);
     } catch (error) {
-      searchStatus.textContent =
-        error.status === 401
-          ? "Đăng nhập để lưu sản phẩm yêu thích."
-          : error.message;
+      showProductActionError(error, "Đăng nhập để lưu sản phẩm yêu thích.");
     }
   });
 
@@ -110,10 +114,7 @@ function createProductCard(product) {
       await window.stationeryCart.add(product.id, 1);
       searchStatus.textContent = `Đã thêm “${product.name}” vào giỏ hàng.`;
     } catch (error) {
-      searchStatus.textContent =
-        error.status === 401
-          ? "Đăng nhập để thêm sản phẩm vào giỏ hàng."
-          : error.message;
+      showProductActionError(error, "Đăng nhập để thêm sản phẩm vào giỏ hàng.");
     }
   });
   price.append(addButton);
@@ -316,7 +317,7 @@ function createReviewCard(review) {
   const name = document.createElement("b");
   name.textContent = review.name;
   const product = document.createElement("small");
-  product.textContent = `Đã mua sản phẩm: ${review.product}`;
+  product.textContent = `Sản phẩm: ${review.product}`;
 
   details.append(name, product);
   customer.append(avatar, details);
@@ -417,6 +418,11 @@ if (reviewsCollapse) {
     updateReviewVisibility();
   });
 }
+
+window.addEventListener("stationery:review-created", () => {
+  loadInitialReviews();
+  loadProducts();
+});
 
 loadProducts();
 if (reviewGrid && reviewsMore) {

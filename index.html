@@ -86,22 +86,31 @@
             <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true">
               <use href="assets/icons/categories.svg#notebook"></use>
             </svg>
-            <strong>Sổ &amp; vở</strong
-            >            <small><span data-category-count="notebook">0</span> sản phẩm <span aria-hidden="true">↗</span></small>
+            <strong>Sổ &amp; vở</strong>
+            <small
+              ><span data-category-count="notebook">0</span> sản phẩm
+              <span aria-hidden="true">↗</span></small
+            >
           </a>
           <a class="category-card" href="#products" data-filter="pen">
             <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true">
               <use href="assets/icons/categories.svg#pen"></use>
             </svg>
-            <strong>Bút viết</strong
-            >            <small><span data-category-count="pen">0</span> sản phẩm <span aria-hidden="true">↗</span></small>
+            <strong>Bút viết</strong>
+            <small
+              ><span data-category-count="pen">0</span> sản phẩm
+              <span aria-hidden="true">↗</span></small
+            >
           </a>
           <a class="category-card" href="#products" data-filter="color">
             <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true">
               <use href="assets/icons/categories.svg#palette"></use>
             </svg>
-            <strong>Màu &amp; vẽ</strong
-            >            <small><span data-category-count="color">0</span> sản phẩm <span aria-hidden="true">↗</span></small>
+            <strong>Màu &amp; vẽ</strong>
+            <small
+              ><span data-category-count="color">0</span> sản phẩm
+              <span aria-hidden="true">↗</span></small
+            >
           </a>
           <a class="category-card" href="#products" data-filter="accessory">
             <svg
@@ -111,22 +120,31 @@
             >
               <use href="assets/icons/categories.svg#tools"></use>
             </svg>
-            <strong>Túi &amp; phụ kiện</strong
-            >            <small><span data-category-count="accessory">0</span> sản phẩm <span aria-hidden="true">↗</span></small>
+            <strong>Túi &amp; phụ kiện</strong>
+            <small
+              ><span data-category-count="accessory">0</span> sản phẩm
+              <span aria-hidden="true">↗</span></small
+            >
           </a>
           <a class="category-card" href="#products" data-filter="stationery">
             <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true">
               <use href="assets/icons/categories.svg#note"></use>
             </svg>
-            <strong>Giấy ghi chú</strong
-            >            <small><span data-category-count="stationery">0</span> sản phẩm <span aria-hidden="true">↗</span></small>
+            <strong>Giấy ghi chú</strong>
+            <small
+              ><span data-category-count="stationery">0</span> sản phẩm
+              <span aria-hidden="true">↗</span></small
+            >
           </a>
           <a class="category-card" href="#products" data-filter="gift">
             <svg class="cat-icon" viewBox="0 0 40 40" aria-hidden="true">
               <use href="assets/icons/categories.svg#gift"></use>
             </svg>
-            <strong>Bộ quà tặng</strong
-            >            <small><span data-category-count="gift">0</span> sản phẩm <span aria-hidden="true">↗</span></small>
+            <strong>Bộ quà tặng</strong>
+            <small
+              ><span data-category-count="gift">0</span> sản phẩm
+              <span aria-hidden="true">↗</span></small
+            >
           </a>
         </div>
       </section>
@@ -176,6 +194,45 @@
           <div class="reviews-heading">
             <h2 id="reviews-heading">Niềm vui được gửi lại.</h2>
           </div>
+          <div class="review-form-panel">
+            <p class="review-login-prompt" data-review-login-prompt hidden>
+              <span data-review-login-status>Đăng nhập để viết nhận xét.</span>
+              <a href="./pages/auth/login.html">Đăng nhập</a>
+            </p>
+            <form class="review-form" data-review-form hidden>
+              <label>
+                Sản phẩm
+                <select name="productId" data-review-product-select required>
+                  <option value="">Đang tải sản phẩm...</option>
+                </select>
+              </label>
+              <label>
+                Đánh giá
+                <select name="rating" required>
+                  <option value="">Chọn số sao</option>
+                  <option value="5">5 sao - Rất hài lòng</option>
+                  <option value="4">4 sao - Hài lòng</option>
+                  <option value="3">3 sao - Bình thường</option>
+                  <option value="2">2 sao - Chưa hài lòng</option>
+                  <option value="1">1 sao - Không hài lòng</option>
+                </select>
+              </label>
+              <label class="review-form-comment">
+                Bình luận
+                <textarea
+                  name="comment"
+                  minlength="5"
+                  maxlength="1000"
+                  placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
+                  required
+                ></textarea>
+              </label>
+              <div class="review-form-actions">
+                <p data-review-status role="status" aria-live="polite"></p>
+                <button type="submit">Gửi nhận xét</button>
+              </div>
+            </form>
+          </div>
           <div
             class="review-grid"
             id="review-grid"
@@ -204,6 +261,8 @@
 
     <div id="site-footer"></div>
     <script src="js/api.js"></script>
+    <script src="js/auth-prompt.js"></script>
+    <script src="js/review-form.js"></script>
     <script src="js/favorites.js"></script>
     <script src="js/cart-store.js"></script>
     <script src="js/header.js"></script>
